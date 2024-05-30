@@ -1,58 +1,53 @@
+#!../.venv/bin/python
 import logging
 
 from slixmpp import ClientXMPP
 from slixmpp.exceptions import IqError, IqTimeout
 
 
-class EchoBot(ClientXMPP):
+class Bot(ClientXMPP):
 
-    def __init__(self, jid, password):
+    def __init__(self, jid, password,room="whatever@conference.jerrynya.fun",nick="AFM"):
         ClientXMPP.__init__(self, jid, password)
-
-        self.add_event_handler("session_start", self.session_start)
+        
+        self.room=room
+        self.nick=nick
+        
+        self.add_event_handler("session_start", self.start)
         self.add_event_handler("message", self.message)
-
+        self.add_event_handler("groupchat_message", self.muc_message)
+        
         # If you wanted more functionality, here's how to register plugins:
-        # self.register_plugin('xep_0030') # Service Discovery
+        self.register_plugin('xep_0030') # Service Discovery
         # self.register_plugin('xep_0199') # XMPP Ping
 
-        # Here's how to access plugins once you've registered them:
-        # self['xep_0030'].add_feature('echo_demo')
+        self.register_plugin('xep_0045') # muc plugin
 
-        # If you are working with an OpenFire server, you will
-        # need to use a different SSL version:
-        # import ssl
-        # self.ssl_version = ssl.PROTOCOL_SSLv3
-
-    def session_start(self, event):
+    async def start(self, event):
+        await self.get_roster()
         self.send_presence()
-        self.get_roster()
+        self.plugin['xep_0045'].join_muc(self.room,self.nick)
 
-        # Most get_*/set_* methods from plugins use Iq stanzas, which
-        # can generate IqError and IqTimeout exceptions
-        #
-        # try:
-        #     self.get_roster()
-        # except IqError as err:
-        #     logging.error('There was an error getting the roster')
-        #     logging.error(err.iq['error']['condition'])
-        #     self.disconnect()
-        # except IqTimeout:
-        #     logging.error('Server is taking too long to respond')
-        #     self.disconnect()
-
+    # 私信处理
     def message(self, msg):
         if msg['type'] in ('chat', 'normal'):
             msg.reply("Thanks for sending\n%(body)s" % msg).send()
-
+    
+    # 群聊处理
+    def muc_message(self, msg):
+        # 判断被@
+        if msg['mucnick'] != self.nick and self.nick in msg['body']:
+            
+            self.send_message(mto=msg['from'].bare,
+                              mbody="get %s from %s." % (msg['body'],msg['mucnick']),
+                              mtype='groupchat')
+            
 
 if __name__ == '__main__':
-    # Ideally use optparse or argparse to get JID,
-    # password, and log level.
 
     logging.basicConfig(level=logging.DEBUG,
                         format='%(levelname)-8s %(message)s')
 
-    xmpp = EchoBot('bot@jerrynya.fun', 'dqjJ8lFWGQlK7fkKqSjZ0QGcxi8ZnsK3Ppt5B25SAKE=')
+    xmpp = Bot('bot@jerrynya.fun', 'dqjJ8lFWGQlK7fkKqSjZ0QGcxi8ZnsK3Ppt5B25SAKE=',"whatever@conference.jerrynya.fun","AFM")
     xmpp.connect()
     xmpp.process(forever=True)
