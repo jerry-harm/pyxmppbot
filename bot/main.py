@@ -2,6 +2,7 @@
 import logging
 
 from slixmpp import ClientXMPP
+from slixmpp import JID, InvalidJID
 from slixmpp.exceptions import IqError, IqTimeout
 
 
@@ -10,8 +11,8 @@ class Bot(ClientXMPP):
     def __init__(self, jid, password,room="whatever@conference.jerrynya.fun",nick="AFM"):
         ClientXMPP.__init__(self, jid, password)
         
-        self.room=room
-        self.nick=nick
+        self.room = JID(room)
+        self.nick = nick
         
         self.add_event_handler("session_start", self.start)
         self.add_event_handler("message", self.message)
@@ -34,13 +35,49 @@ class Bot(ClientXMPP):
             msg.reply("Thanks for sending\n%(body)s" % msg).send()
     
     # 群聊处理
-    def muc_message(self, msg):
+    async def muc_message(self, msg):
         # 判断被@
+        print(msg)
+        room_jid, acquire_user = str(msg['from']).split('/',1)
         if msg['mucnick'] != self.nick and self.nick in msg['body']:
-            
-            self.send_message(mto=msg['from'].bare,
-                              mbody="get %s from %s." % (msg['body'],msg['mucnick']),
-                              mtype='groupchat')
+
+            if 'DO' in msg['body']:
+                if 'list_users' in msg['body']:
+                    nones = await self.plugin['xep_0045'].get_roles_list(room_jid, role='none')
+                    visitors = await self.plugin['xep_0045'].get_roles_list(room_jid, role='visitor')
+                    moderators = await self.plugin['xep_0045'].get_roles_list(room_jid,role='moderator')
+                    participants = await self.plugin['xep_0045'].get_roles_list(room_jid, role='participant')
+                    self.send_message(mto=msg['from'].bare,
+                                      mbody=str("nones: %s \nvisitors: %s\nmoderators: %s\nparticipants: %s"
+                                                %(nones,visitors,moderators,participants)),
+                                      mtype='groupchat'
+                                      )
+            if 'ADMIN' in msg['body']:
+                cmd = msg['body'].split(' ')
+                moderators = await self.plugin['xep_0045'].get_roles_list(room_jid, role='moderator')
+                if acquire_user in moderators:
+                    if 'get_jid' in cmd:
+                        nick_to_search = cmd[cmd.index('get_jid')+1]
+                        jid_got = self.plugin['xep_0045'].get_jid_property(room_jid,nick_to_search,'jid')
+
+
+
+                        self.send_message(mto=msg['from'].bare,
+                                          mbody=jid_got,
+                                          mtype='groupchat'
+                                          )
+                else:
+                    self.send_message(
+                        mto=msg['from'].bare,
+                        mbody='not an admin',
+                        mtype='groupchat'
+
+                    )
+
+
+
+
+
             
 
 if __name__ == '__main__':
