@@ -3,6 +3,9 @@ import logging
 import sys
 
 import xml.etree.ElementTree as ET
+from argparse import ArgumentParser
+from getpass import getpass
+
 from slixmpp import ClientXMPP
 from slixmpp import JID
 from slixmpp.stanza.message import Message
@@ -22,12 +25,21 @@ class Bot(ClientXMPP):
         self.add_event_handler("session_start", self.start)
         self.add_event_handler("message", self.message)
         self.add_event_handler("groupchat_message", self.muc_message)
-
+        self.add_event_handler("groupchat_direct_invite",self.invited)
         # If you wanted more functionality, here's how to register plugins:
         self.register_plugin('xep_0030')  # Service Discovery
         # self.register_plugin('xep_0199') # XMPP Ping
 
         self.register_plugin('xep_0045')  # muc plugin
+        self.register_plugin('xep_0249') # muc invite
+
+    def invited(self,msg: Message):
+        """
+        被邀请之后直接加入房间
+        :param msg:
+        :return:
+        """
+        self.plugin['xep_0045'].join_muc(msg['groupchat_invite']['jid'],self.nick)
 
     def confirm_from_room(self, msg: Message) -> bool:
         """
@@ -123,43 +135,57 @@ class Bot(ClientXMPP):
         else:
             re_jid = msg['from']
         if "色图" in cmd:
-            try:
-                body = get_img.get_real_body()
-                # self.send_message(mto=re_jid,
-                #                   mbody=body["url"],
-                #                   mtype=mtype,
-                #                   )
-
-                xml_tmp = """<message type='%s' to='%s' id='sharing-a-file'>
-  <file-sharing xmlns='urn:xmpp:sfs:0' disposition='inline'>
-    <!-- ... -->
-  </file-sharing>
-  <fallback xmlns='urn:xmpp:fallback:0' for='urn:xmpp:sfs:0'><body/></fallback>
-  <body>%s</body>
-  <x xmlns='jabber:x:oob'><url>%s</url></x>
-</message>""" % (mtype, re_jid, body['url'],body['url'])
-                self.send_xml(ET.XML(xml_tmp))
-
-                self.send_message(
-                    mto=re_jid,
-                    mbody=str(body),
-                    mtype=mtype
-                )
-            except ConnectionError as e:
+            body = get_img.get_real_body()
+            if not body:
                 self.send_message(
                     mto=re_jid,
                     mbody="wrong",
                     mtype=mtype
                 )
+                return 0
+            xml_tmp = """
+<message xmlns="jabber:client" xml:lang="en" to="%s" type="%s" id="488e40b5-6a5e-4020-89df-471e3b36ec52">
+  <archived by="%s" id="1717757547021500" xmlns="urn:xmpp:mam:tmp" />
+  <stanza-id by="%s" id="1717757547021500" xmlns="urn:xmpp:sid:0" />
+  <origin-id xmlns="urn:xmpp:sid:0" id="488e40b5-6a5e-4020-89df-471e3b36ec52" />
+  <x xmlns="jabber:x:oob">
+    <url>%s</url>
+</x>
+  <markable xmlns="urn:xmpp:chat-markers:0" />
+  <body>%s</body>
+</message>""" % (re_jid, mtype, re_jid, re_jid, body['url'], body['url'])
+            self.send_xml(ET.XML(xml_tmp))
+
+            self.send_message(
+                mto=re_jid,
+                mbody=
+                """
+pid:{pid},
+page: {page},
+author:{author},
+author_uid:{author_uid},
+title:{title}
+tags:{tags}
+url: {url}""".format(**body),
+                mtype=mtype
+            )
 
     async def start(self, event):
+        """
+        处理启动，启动时加入命令行指定的聊天室
+        :param event:
+        :return:
+        """
         await self.get_roster()
         self.send_presence()
         await self.plugin['xep_0045'].join_muc(self.room, self.nick)
 
-    # 私信处理
     async def message(self, msg: Message):
-
+        """
+        私信处理
+        :param msg:
+        :return:
+        """
         if msg['type'] in ('chat', 'normal'):
             msg.reply("Thanks for sending\n%s" % msg['body']).send()
             # 判断是否来自群聊
@@ -176,8 +202,12 @@ class Bot(ClientXMPP):
                                   mtype="chat"
                                   )
 
-    # 群聊处理
     async def muc_message(self, msg: Message):
+        """
+        群聊处理
+        :param msg:
+        :return:
+        """
         # 被提到
         if msg['mucnick'] != self.nick and self.nick in msg['body']:
             if 'ADMIN' in msg['body']:
@@ -196,12 +226,45 @@ if __name__ == '__main__':
         import asyncio
 
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    logging.basicConfig(level=logging.DEBUG,
+
+    # Set up the command line arguments.
+    parser = ArgumentParser()
+    parser.add_argument("-q", "--quiet", help="set logging to ERROR",
+                        action="store_const",
+                        dest="loglevel",
+                        const=logging.ERROR,
+                        default=logging.INFO)
+    parser.add_argument("-d", "--debug", help="set logging to DEBUG",
+                        action="store_const",
+                        dest="loglevel",
+                        const=logging.DEBUG,
+                        default=logging.INFO)
+
+    # JID and password options.
+    parser.add_argument("-j", "--jid", dest="jid",
+                        help="JID to use")
+    parser.add_argument("-p", "--password", dest="password",
+                        help="password to use")
+    parser.add_argument("-r", "--room", dest="room",
+                        help="room to join")
+    parser.add_argument("-n", "--nick", dest="nick",
+                        help="nick to use")
+
+    args = parser.parse_args()
+
+    # Setup logging.
+    logging.basicConfig(level=args.loglevel,
                         format='%(levelname)-8s %(message)s')
-    get_jid = input('jid:')
-    get_passwd = input('passwd:')
-    get_room = input('roomjid:')
-    get_nick = input('nick:')
-    xmpp = Bot(get_jid, get_passwd, get_room, get_nick)
+
+    if args.jid is None:
+        args.jid = input("Username: ")
+    if args.password is None:
+        args.password = getpass("Password: ")
+    if args.room is None:
+        args.room = input("RoomJid: ")
+    if args.nick is None:
+        args.nick = getpass("nick: ")
+
+    xmpp = Bot(args.jid, args.password, args.room, args.nick)
     xmpp.connect()
     xmpp.process()

@@ -31,9 +31,9 @@ def get_real_body():
         if int(res.status) == 200:
             json_str = res.read().decode("utf-8")
             return json.loads(json_str)['data'][0]
-    except Exception as e:
+    except ConnectionError as e:
         print(e)
-        return 0
+        return False
 
 
 # def get_rand_img():
