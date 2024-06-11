@@ -16,10 +16,10 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36 QIHU 360SE"}
 
 
-def get_real_body():
+def api1():
     """
-    get the url after 302
-    :param url:
+    色图api sex.nyan.xyz
+    :param:
     :return:
     """
     url = "https://sex.nyan.xyz/api/v2/"
@@ -46,5 +46,5 @@ def get_real_body():
 #     get_real_url(url)
 
 if __name__ == '__main__':
-    print(get_real_body())
+    print(api1())
 

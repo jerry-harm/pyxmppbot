@@ -2,7 +2,6 @@
 import logging
 import sys
 
-import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
 from getpass import getpass
 
@@ -16,7 +15,7 @@ import get_img
 
 class Bot(ClientXMPP):
 
-    def __init__(self, jid, password, room="whatever@conference.jerrynya.fun", nick="AFM"):
+    def __init__(self, jid, password, room, nick="AFM"):
         ClientXMPP.__init__(self, jid, password)
 
         self.room = JID(room)
@@ -25,21 +24,22 @@ class Bot(ClientXMPP):
         self.add_event_handler("session_start", self.start)
         self.add_event_handler("message", self.message)
         self.add_event_handler("groupchat_message", self.muc_message)
-        self.add_event_handler("groupchat_direct_invite",self.invited)
+        self.add_event_handler("groupchat_direct_invite", self.invited)
         # If you wanted more functionality, here's how to register plugins:
         self.register_plugin('xep_0030')  # Service Discovery
         # self.register_plugin('xep_0199') # XMPP Ping
 
         self.register_plugin('xep_0045')  # muc plugin
-        self.register_plugin('xep_0249') # muc invite
+        self.register_plugin('xep_0249')  # muc invite
+        self.register_plugin('xep_0066')  # my out of band
 
-    def invited(self,msg: Message):
+    def invited(self, msg: Message):
         """
         被邀请之后直接加入房间
         :param msg:
         :return:
         """
-        self.plugin['xep_0045'].join_muc(msg['groupchat_invite']['jid'],self.nick)
+        self.plugin['xep_0045'].join_muc(msg['groupchat_invite']['jid'], self.nick)
 
     def confirm_from_room(self, msg: Message) -> bool:
         """
@@ -135,7 +135,7 @@ class Bot(ClientXMPP):
         else:
             re_jid = msg['from']
         if "色图" in cmd:
-            body = get_img.get_real_body()
+            body = get_img.api1()
             if not body:
                 self.send_message(
                     mto=re_jid,
@@ -143,32 +143,21 @@ class Bot(ClientXMPP):
                     mtype=mtype
                 )
                 return 0
-            xml_tmp = """
-<message xmlns="jabber:client" xml:lang="en" to="%s" type="%s" id="488e40b5-6a5e-4020-89df-471e3b36ec52">
-  <archived by="%s" id="1717757547021500" xmlns="urn:xmpp:mam:tmp" />
-  <stanza-id by="%s" id="1717757547021500" xmlns="urn:xmpp:sid:0" />
-  <origin-id xmlns="urn:xmpp:sid:0" id="488e40b5-6a5e-4020-89df-471e3b36ec52" />
-  <x xmlns="jabber:x:oob">
-    <url>%s</url>
-</x>
-  <markable xmlns="urn:xmpp:chat-markers:0" />
-  <body>%s</body>
-</message>""" % (re_jid, mtype, re_jid, re_jid, body['url'], body['url'])
-            self.send_xml(ET.XML(xml_tmp))
-
-            self.send_message(
-                mto=re_jid,
-                mbody=
-                """
-pid:{pid},
-page: {page},
-author:{author},
-author_uid:{author_uid},
-title:{title}
-tags:{tags}
-url: {url}""".format(**body),
-                mtype=mtype
-            )
+            #             xml_tmp = """
+            # <message xmlns="jabber:client" xml:lang="en" to="%s" type="%s" >
+            #   <x xmlns="jabber:x:oob">
+            #     <url>%s</url>
+            # </x>
+            #   <markable xmlns="urn:xmpp:chat-markers:0" />
+            #   <body>%s</body>
+            # </message>""" % (re_jid, mtype, body['url'], body['url'])
+            #             self.send_xml(ET.XML(xml_tmp))
+            msg=Message()
+            msg['type'] = mtype
+            msg['to'] = re_jid
+            msg['body']=body['url']
+            msg['oob']['url'] = body['url']
+            self.send(msg)
 
     async def start(self, event):
         """
@@ -178,7 +167,8 @@ url: {url}""".format(**body),
         """
         await self.get_roster()
         self.send_presence()
-        await self.plugin['xep_0045'].join_muc(self.room, self.nick)
+        if self.room:
+            await self.plugin['xep_0045'].join_muc(self.room, self.nick)
 
     async def message(self, msg: Message):
         """
@@ -260,8 +250,6 @@ if __name__ == '__main__':
         args.jid = input("Username: ")
     if args.password is None:
         args.password = getpass("Password: ")
-    if args.room is None:
-        args.room = input("RoomJid: ")
     if args.nick is None:
         args.nick = getpass("nick: ")
 
