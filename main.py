@@ -1,5 +1,6 @@
 #!../.venv/bin/python
 import logging
+import random
 import sys
 
 from argparse import ArgumentParser
@@ -10,7 +11,7 @@ from slixmpp import JID
 from slixmpp.stanza.message import Message
 from slixmpp.types import MessageTypes
 
-import get_img
+import get_api
 
 
 class Bot(ClientXMPP):
@@ -70,7 +71,7 @@ class Bot(ClientXMPP):
             self.send_message(msg['from'].bare, "I'm not admin", mtype='groupchat')
             return False
 
-    async def resolve_admin_cmd(self, msg: Message):
+    async def resolve_muc_admin_cmd(self, msg: Message):
         """
         resolve the admin cmd
         :param msg:
@@ -121,7 +122,23 @@ class Bot(ClientXMPP):
                                   mtype=mtype
                                   )
 
-    def resolve_usr_cmd(self, msg: Message):
+    def get_img(self, re_jid, mtype, api):
+        url = api()
+        if not url:
+            self.send_message(
+                mto=re_jid,
+                mbody="wrong",
+                mtype=mtype
+            )
+            return 0
+        msg = Message()
+        msg['type'] = mtype
+        msg['to'] = re_jid
+        msg['body'] = url
+        msg['oob']['url'] = url
+        self.send(msg)
+
+    def resolve_muc_usr_cmd(self, msg: Message):
         """
         handel user's cmd
         :param msg:
@@ -134,30 +151,20 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
-        if "色图" in cmd:
-            body = get_img.api1()
-            if not body:
-                self.send_message(
-                    mto=re_jid,
-                    mbody="wrong",
-                    mtype=mtype
-                )
-                return 0
-            #             xml_tmp = """
-            # <message xmlns="jabber:client" xml:lang="en" to="%s" type="%s" >
-            #   <x xmlns="jabber:x:oob">
-            #     <url>%s</url>
-            # </x>
-            #   <markable xmlns="urn:xmpp:chat-markers:0" />
-            #   <body>%s</body>
-            # </message>""" % (re_jid, mtype, body['url'], body['url'])
-            #             self.send_xml(ET.XML(xml_tmp))
-            msg=Message()
-            msg['type'] = mtype
-            msg['to'] = re_jid
-            msg['body']=body['url']
-            msg['oob']['url'] = body['url']
-            self.send(msg)
+        cmds = {"色图": random.sample(get_api.setu_apis,1)[0],
+                "cosplay": random.sample(get_api.cosplay_apis,1)[0]
+                }
+        for i in cmd:
+            if i in cmds:
+                self.get_img(re_jid,mtype,cmds[i])
+
+    def resolve_chat(self, msg: Message):
+        """
+        普通私信处理
+        :param msg:
+        :return:
+        """
+        self.resolve_muc_usr_cmd(msg)
 
     async def start(self, event):
         """
@@ -182,15 +189,12 @@ class Bot(ClientXMPP):
             if self.confirm_from_room(msg):
                 if 'ADMIN' in msg['body']:
                     if self.confirm_room_admin(msg):
-                        await self.resolve_admin_cmd(msg)
+                        await self.resolve_muc_admin_cmd(msg)
                 else:
-                    self.resolve_usr_cmd(msg)
+                    self.resolve_muc_usr_cmd(msg)
             else:
                 # 普通私聊处理
-                self.send_message(mto=msg['from'].bare,
-                                  mbody="来自%s，你说%s" % (msg['from'], msg['body']),
-                                  mtype="chat"
-                                  )
+                self.resolve_chat(msg)
 
     async def muc_message(self, msg: Message):
         """
@@ -202,13 +206,9 @@ class Bot(ClientXMPP):
         if msg['mucnick'] != self.nick and self.nick in msg['body']:
             if 'ADMIN' in msg['body']:
                 if await self.confirm_room_admin(msg):
-                    await self.resolve_admin_cmd(msg)
+                    await self.resolve_muc_admin_cmd(msg)
             else:
-                self.resolve_usr_cmd(msg)
-                # self.send_message(mto=msg['from'].bare,
-                #                   mbody="来自%s，你说%s" % (msg['from'], msg['body']),
-                #                   mtype="groupchat"
-                #                   )
+                self.resolve_muc_usr_cmd(msg)
 
 
 if __name__ == '__main__':
