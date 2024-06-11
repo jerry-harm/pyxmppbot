@@ -33,6 +33,11 @@ class Bot(ClientXMPP):
         self.register_plugin('xep_0045')  # muc plugin
         self.register_plugin('xep_0249')  # muc invite
         self.register_plugin('xep_0066')  # my out of band
+        self.pic_cmds = {"色图": get_api.setu_apis,
+                         "写真": get_api.cosplay_apis,
+                         "龙图": [get_api.loog]
+                         }
+        self.no_arg_cmds = {"help": self.show_functions}
 
     def invited(self, msg: Message):
         """
@@ -138,6 +143,9 @@ class Bot(ClientXMPP):
         msg['oob']['url'] = url
         self.send(msg)
 
+    def show_functions(self, re_jid, mtype):
+        self.send_message(mto=re_jid, mtype=mtype, mbody="目前支持图片api调用{}，无参数命令调用{}".format(list(self.pic_cmds.keys()),list(self.no_arg_cmds.keys())))
+
     def resolve_muc_usr_cmd(self, msg: Message):
         """
         handel user's cmd
@@ -151,12 +159,12 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
-        cmds = {"色图": random.sample(get_api.setu_apis,1)[0],
-                "cosplay": random.sample(get_api.cosplay_apis,1)[0]
-                }
+
         for i in cmd:
-            if i in cmds:
-                self.get_img(re_jid,mtype,cmds[i])
+            if i in self.pic_cmds:
+                self.get_img(re_jid, mtype, random.choice(self.pic_cmds[i]))
+            if i in self.no_arg_cmds:
+                self.no_arg_cmds[i](re_jid, mtype)
 
     def resolve_chat(self, msg: Message):
         """
