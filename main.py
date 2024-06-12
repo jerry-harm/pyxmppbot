@@ -243,7 +243,7 @@ class Bot(ClientXMPP):
                 res[m['mam_result']['forwarded']['message']['from'].resource] += 1
             res_str = '在最近的{}以内条中：\n'.format(num)
             for nick, times in res.items():
-                res_str += '{}:{}次\n'.format(nick, times)
+                res_str += '{}:{}次 '.format(nick, times)
             self.send_message(re_jid, mbody=res_str, mtype=mtype)
         except IndexError:
             self.send_message(re_jid, mbody='请输入条数', mtype=mtype)
