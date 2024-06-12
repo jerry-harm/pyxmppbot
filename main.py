@@ -38,8 +38,7 @@ class Bot(ClientXMPP):
                      "龙图": [self.send_img, 0, "随机龙图"],
                      "help": [self.show_functions, 0, "显示所有命令"],
                      "QQ": [self.qq_information, 1, "获取一个qq号的头像和邮箱"],
-                     "随机数":[self.send_random,2,"获得输入两数间的随机数"],
-                     "整点报时":[]
+                     "随机数": [self.send_random, 2, "获得输入两数间的随机数"]
                      }
         self.admin_cmd = {"获取JID": [self.get_jid, 1, "管理员获取JID"],
                           "help": [self.admin_help, 0, "管理员帮助"],
@@ -202,7 +201,8 @@ class Bot(ClientXMPP):
         try:
             res = get_api.qq_json(args[1])
             if res:
-                self.send_message(mtype=mtype, mto=re_jid, mbody="头像：{}\n邮箱：{}".format(res["touxiang"], res["email"]))
+                self.send_message(mtype=mtype, mto=re_jid,
+                                  mbody="头像：{}\n邮箱：{}".format(res["touxiang"], res["email"]))
                 msg = Message()
                 msg['type'] = mtype
                 msg['to'] = re_jid
@@ -214,16 +214,16 @@ class Bot(ClientXMPP):
         except IndexError as e:
             self.send_message(re_jid, '没有输入', mtype=mtype)
 
-    def send_random(self,re_jid,mtype,args):
+    def send_random(self, re_jid, mtype, args):
         try:
-            res=random.randint(int(args[1]),int(args[2]))
+            res = random.randint(int(args[1]), int(args[2]))
             self.send_message(mto=re_jid, mbody=str(res), mtype=mtype)
         except TypeError as e:
-            self.send_message(mto=re_jid,mbody='不是两个数',mtype=mtype)
+            self.send_message(mto=re_jid, mbody='不是两个数', mtype=mtype)
         except IndexError as e:
-            self.send_message(re_jid,'没有输入',mtype=mtype)
+            self.send_message(re_jid, '没有输入', mtype=mtype)
         except ValueError as e:
-            self.send_message(re_jid,'范围出错',mtype=mtype)
+            self.send_message(re_jid, '范围出错', mtype=mtype)
 
     # admin
     def get_jid(self, re_jid, mtype, args):
