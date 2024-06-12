@@ -1,9 +1,10 @@
 #!../.venv/bin/python
+import inspect
 import logging
 import random
 import sys
-
 from argparse import ArgumentParser
+from collections import defaultdict
 from getpass import getpass
 
 from slixmpp import ClientXMPP
@@ -28,18 +29,21 @@ class Bot(ClientXMPP):
         self.add_event_handler("groupchat_direct_invite", self.invited)
         # If you wanted more functionality, here's how to register plugins:
         self.register_plugin('xep_0030')  # Service Discovery
+        self.register_plugin('xep_0313')  # mam
         # self.register_plugin('xep_0199') # XMPP Ping
 
         self.register_plugin('xep_0045')  # muc plugin
         self.register_plugin('xep_0249')  # muc invite
         self.register_plugin('xep_0066')  # my out of band
-        self.cmds = {"色图": [self.send_img, 0, "随机动漫色图"],
-                     "写真": [self.send_img, 0, "随机写真"],
-                     "龙图": [self.send_img, 0, "随机龙图"],
-                     "help": [self.show_functions, 0, "显示所有命令"],
-                     "QQ": [self.qq_information, 1, "获取一个qq号的头像和邮箱"],
-                     "随机数": [self.send_random, 2, "获得输入两数间的随机数"]
-                     }
+        self.cmds = {
+            "help": [self.show_functions, 0, "显示所有命令"],
+            "色图": [self.send_img, 0, "随机动漫色图"],
+            "写真": [self.send_img, 0, "随机写真"],
+            "龙图": [self.send_img, 0, "随机龙图"],
+            "QQ": [self.qq_information, 1, "获取一个qq号的头像和邮箱"],
+            "随机数": [self.send_random, 2, "获得输入两数间的随机数"],
+            "统计": [self.stats_mam, 1, "获取n条内发言次数统计，请不要超过500条"]
+        }
         self.admin_cmd = {"获取JID": [self.get_jid, 1, "管理员获取JID"],
                           "help": [self.admin_help, 0, "管理员帮助"],
                           "驱逐": [self.outcast, 1, "驱逐一个JID"],
@@ -93,16 +97,17 @@ class Bot(ClientXMPP):
         cmd = msg['body'].split(' ')
         # 怎么来的怎么回去
         mtype: MessageTypes = msg['type']
-        if (msg['type'] == 'groupchat'):
+        if msg['type'] == 'groupchat':
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
         for i in cmd:
             if i in self.admin_cmd:
-                self.admin_cmd[i][0](re_jid=re_jid, mtype=mtype,
-                                     args=cmd[cmd.index(i):cmd.index(i) + self.admin_cmd[i][1] + 1])
+                if inspect.iscoroutinefunction(self.admin_cmd[i][0]):
+                    self.admin_cmd[i][0](re_jid=re_jid, mtype=mtype,
+                                         args=cmd[cmd.index(i):cmd.index(i) + self.admin_cmd[i][1] + 1])
 
-    def resolve_muc_usr_cmd(self, msg: Message):
+    async def resolve_muc_usr_cmd(self, msg: Message):
         """
         handel user's cmd
         :param msg:
@@ -118,16 +123,20 @@ class Bot(ClientXMPP):
 
         for i in cmd:
             if i in self.cmds:
-                self.cmds[i][0](re_jid=re_jid, mtype=mtype,
-                                args=cmd[cmd.index(i):cmd.index(i) + self.cmds[i][1] + 1])
+                if inspect.iscoroutinefunction(self.cmds[i][0]):
+                    await self.cmds[i][0](re_jid=re_jid, mtype=mtype,
+                                          args=cmd[cmd.index(i):cmd.index(i) + self.cmds[i][1] + 1])
+                else:
+                    self.cmds[i][0](re_jid=re_jid, mtype=mtype,
+                                    args=cmd[cmd.index(i):cmd.index(i) + self.cmds[i][1] + 1])
 
-    def resolve_chat(self, msg: Message):
+    async def resolve_chat(self, msg: Message):
         """
         普通私信处理
         :param msg:
         :return:
         """
-        self.resolve_muc_usr_cmd(msg)
+        await self.resolve_muc_usr_cmd(msg)
 
     async def start(self, event):
         """
@@ -154,10 +163,10 @@ class Bot(ClientXMPP):
                     if self.confirm_room_admin(msg):
                         await self.resolve_muc_admin_cmd(msg)
                 else:
-                    self.resolve_muc_usr_cmd(msg)
+                    await self.resolve_muc_usr_cmd(msg)
             else:
                 # 普通私聊处理
-                self.resolve_chat(msg)
+                await self.resolve_chat(msg)
 
     async def muc_message(self, msg: Message):
         """
@@ -171,7 +180,7 @@ class Bot(ClientXMPP):
                 if await self.confirm_room_admin(msg):
                     await self.resolve_muc_admin_cmd(msg)
             else:
-                self.resolve_muc_usr_cmd(msg)
+                await self.resolve_muc_usr_cmd(msg)
 
     # user
     def send_img(self, re_jid, mtype, args):
@@ -211,19 +220,35 @@ class Bot(ClientXMPP):
                 self.send(msg)
             else:
                 self.send_message(mbody="调用出错", mtype=mtype, mto=re_jid)
-        except IndexError as e:
+        except IndexError:
             self.send_message(re_jid, '没有输入', mtype=mtype)
 
     def send_random(self, re_jid, mtype, args):
         try:
             res = random.randint(int(args[1]), int(args[2]))
             self.send_message(mto=re_jid, mbody=str(res), mtype=mtype)
-        except TypeError as e:
+        except TypeError:
             self.send_message(mto=re_jid, mbody='不是两个数', mtype=mtype)
-        except IndexError as e:
+        except IndexError:
             self.send_message(re_jid, '没有输入', mtype=mtype)
-        except ValueError as e:
+        except ValueError:
             self.send_message(re_jid, '范围出错', mtype=mtype)
+
+    async def stats_mam(self, re_jid, mtype, args):
+        try:
+            num = int(args[1])
+            mam = self.plugin['xep_0313'].iterate(re_jid, total=num, reverse=True)
+            res = defaultdict(int)
+            async for m in mam:
+                res[m['mam_result']['forwarded']['message']['from'].resource] += 1
+            res_str = '在最近的{}以内条中：\n'.format(num)
+            for nick, times in res.items():
+                res_str += '{}:{}次\n'.format(nick, times)
+            self.send_message(re_jid, mbody=res_str, mtype=mtype)
+        except IndexError:
+            self.send_message(re_jid, mbody='请输入条数', mtype=mtype)
+        except TypeError:
+            self.send_message(re_jid, mbody='输入的不是数！', mtype=mtype)
 
     # admin
     def get_jid(self, re_jid, mtype, args):
@@ -234,7 +259,7 @@ class Bot(ClientXMPP):
                                                                              'jid'),
                               mtype=mtype
                               )
-        except IndexError as e:
+        except IndexError:
             self.send_message(re_jid, '没有输入', mtype=mtype)
 
     def admin_help(self, re_jid, mtype, args):
@@ -254,7 +279,7 @@ class Bot(ClientXMPP):
                     mbody='驱逐 %s ' % jid_to_outcast,
                     mtype=mtype
                 )
-        except IndexError as e:
+        except IndexError:
             self.send_message(re_jid, '没有输入', mtype=mtype)
 
     async def set_aff(self, re_jid, mtype, args):
@@ -272,7 +297,7 @@ class Bot(ClientXMPP):
                                   mbody='affiliation set done',
                                   mtype=mtype
                                   )
-        except IndexError as e:
+        except IndexError:
             self.send_message(re_jid, '没有输入', mtype=mtype)
 
 
