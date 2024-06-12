@@ -10,16 +10,16 @@ headers = {
 }
 
 
-def open_ssl(url, api='')-> Any :
+def open_ssl(url, api='') -> Any:
     try:
 
-        req = Request(url=url+api, headers=headers)
+        req = Request(url=url + api, headers=headers)
         res = urlopen(url=req, context=ssl.create_default_context())
         print(res.url)
         return res
     except urllib.error.HTTPError as e:
         print(e)
-        return False
+
 
 def api1(url="https://sex.nyan.xyz/api/v2/"):
     """
@@ -32,8 +32,6 @@ def api1(url="https://sex.nyan.xyz/api/v2/"):
     if res:
         json_str = res.read().decode('utf-8')
         return json.loads(json_str)['data'][0]['url']
-    else:
-        return False
 
 
 def api2(url='https://image.anosu.top/pixiv/json'):
@@ -48,7 +46,6 @@ def api2(url='https://image.anosu.top/pixiv/json'):
     if res:
         json_str = res.read().decode('utf-8')
         return json.loads(json_str)[0]['url']
-    return False
 
 
 def api3():
@@ -66,8 +63,6 @@ def api3():
     res = open_ssl(url)
     if res:
         return res.url
-    else:
-        return False
 
 
 def api4(url='https://api.lolimi.cn/API/meinv/api.php'):
@@ -80,7 +75,6 @@ def api4(url='https://api.lolimi.cn/API/meinv/api.php'):
     if res:
         json_str = res.read().decode('utf-8')
         return json.loads(json_str)['data']['image']
-    return False
 
 
 def api5():
@@ -100,10 +94,7 @@ def api5():
         selected_image_number = random.randint(1001, 1516)
     for ext in extensions:
         image_url = f"{base_url}{batch_choice}dragon_{selected_image_number}_{ext}"
-        if open_ssl(image_url):
-            return image_url
-        else:
-            return False
+        return image_url
 
 
 apis = {
@@ -111,3 +102,10 @@ apis = {
     "写真": [api3, api4],
     "龙图": [api5]
 }
+
+
+def qq_json(qq):
+    res = open_ssl('https://v.api.aa1.cn/api/qqjson/index.php', '?qq=' + str(qq))
+    if res:
+        return json.loads(res.read().decode('utf-8'))
+

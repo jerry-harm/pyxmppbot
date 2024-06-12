@@ -36,8 +36,18 @@ class Bot(ClientXMPP):
         self.cmds = {"色图": [self.send_img, 0, "随机动漫色图"],
                      "写真": [self.send_img, 0, "随机写真"],
                      "龙图": [self.send_img, 0, "随机龙图"],
-                     "help": [self.show_functions, 0, "显示所有命令"]}
+                     "help": [self.show_functions, 0, "显示所有命令"],
+                     "QQ": [self.qq_information, 1, "获取一个qq号的头像和邮箱"],
+                     "随机数":[self.send_random,2,"获得输入两数间的随机数"],
+                     "整点报时":[]
+                     }
+        self.admin_cmd = {"获取JID": [self.get_jid, 1, "管理员获取JID"],
+                          "help": [self.admin_help, 0, "管理员帮助"],
+                          "驱逐": [self.outcast, 1, "驱逐一个JID"],
+                          '设置从属关系': [self.set_aff, 2, "设置一个nick的从属关系"]
+                          }
 
+    # base
     def invited(self, msg: Message):
         """
         被邀请之后直接加入房间
@@ -88,66 +98,10 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
-
-        if '获取JID' in cmd:
-            nick_to_search = cmd[cmd.index('获取JID') + 1]
-            self.send_message(mto=re_jid,
-                              mbody=self.plugin['xep_0045'].get_jid_property(re_jid, nick_to_search,
-                                                                             'jid'),
-                              mtype=mtype
-                              )
-        if '获得聊天室设置' in cmd:
-            self.send_message(mto=re_jid,
-                              mbody=str(await self.plugin['xep_0045'].get_room_config(re_jid)),
-                              mtype=mtype
-                              )
-        if '驱逐' in cmd:
-            jid_to_outcast = JID(cmd[cmd.index('驱逐') + 1])
-
-            if jid_to_outcast.bare != self.jid:
-                await self.plugin['xep_0045'].set_affiliation(re_jid, 'outcast', jid=jid_to_outcast)
-                self.send_message(
-                    mto=re_jid,
-                    mbody='驱逐 %s ' % jid_to_outcast,
-                    mtype=mtype
-                )
-        if '设置从属关系' in cmd:
-            nick_to_set = cmd[cmd.index('设置从属关系') + 1]
-            nick_set_to = cmd[cmd.index('设置从属关系') + 2]
-            if nick_set_to not in ['member', 'admin', 'owner', 'none']:
-                self.send_message(mto=re_jid,
-                                  mbody='not an affiliation',
-                                  mtype=mtype
-                                  )
-            else:
-                await self.plugin['xep_0045'].set_affiliation(re_jid, nick_set_to, nick=nick_to_set)
-                self.send_message(mto=re_jid,
-                                  mbody='affiliation set done',
-                                  mtype=mtype
-                                  )
-
-    def send_img(self, re_jid, mtype, args):
-        url = random.choice(get_api.apis[args[0]])()
-        if not url:
-            self.send_message(
-                mto=re_jid,
-                mbody="wrong",
-                mtype=mtype
-            )
-            return 0
-        msg = Message()
-        msg['type'] = mtype
-        msg['to'] = re_jid
-        msg['body'] = url
-        msg['oob']['url'] = url
-        self.send(msg)
-        self.send_message(mto=re_jid, mbody=url, mtype=mtype)
-
-    def show_functions(self, re_jid, mtype, args):
-        res = ""
-        for k, d in self.cmds.items():
-            res = res + "{} : {},需要{}个参数\n".format(k, d[2], d[1])
-        self.send_message(mto=re_jid, mbody=res,mtype=mtype)
+        for i in cmd:
+            if i in self.admin_cmd:
+                self.admin_cmd[i][0](re_jid=re_jid, mtype=mtype,
+                                     args=cmd[cmd.index(i):cmd.index(i) + self.admin_cmd[i][1] + 1])
 
     def resolve_muc_usr_cmd(self, msg: Message):
         """
@@ -166,7 +120,7 @@ class Bot(ClientXMPP):
         for i in cmd:
             if i in self.cmds:
                 self.cmds[i][0](re_jid=re_jid, mtype=mtype,
-                                args=cmd[cmd.index(i) :cmd.index(i) + self.cmds[i][1] + 1])
+                                args=cmd[cmd.index(i):cmd.index(i) + self.cmds[i][1] + 1])
 
     def resolve_chat(self, msg: Message):
         """
@@ -220,6 +174,107 @@ class Bot(ClientXMPP):
             else:
                 self.resolve_muc_usr_cmd(msg)
 
+    # user
+    def send_img(self, re_jid, mtype, args):
+        url = random.choice(get_api.apis[args[0]])()
+        if not url:
+            self.send_message(
+                mto=re_jid,
+                mbody="wrong",
+                mtype=mtype
+            )
+            return 0
+        msg = Message()
+        msg['type'] = mtype
+        msg['to'] = re_jid
+        msg['body'] = url
+        msg['oob']['url'] = url
+        self.send(msg)
+        self.send_message(mto=re_jid, mbody=url, mtype=mtype)
+
+    def show_functions(self, re_jid, mtype, args):
+        res = ""
+        for k, d in self.cmds.items():
+            res = res + "{} : {},需要{}个参数\n".format(k, d[2], d[1])
+        self.send_message(mto=re_jid, mbody=res, mtype=mtype)
+
+    def qq_information(self, re_jid, mtype, args):
+        try:
+            res = get_api.qq_json(args[1])
+            if res:
+                self.send_message(mtype=mtype, mto=re_jid, mbody="头像：{}\n邮箱：{}".format(res["touxiang"], res["email"]))
+                msg = Message()
+                msg['type'] = mtype
+                msg['to'] = re_jid
+                msg['body'] = res['touxiang']
+                msg['oob']['url'] = res['touxiang']
+                self.send(msg)
+            else:
+                self.send_message(mbody="调用出错", mtype=mtype, mto=re_jid)
+        except IndexError as e:
+            self.send_message(re_jid, '没有输入', mtype=mtype)
+
+    def send_random(self,re_jid,mtype,args):
+        try:
+            res=random.randint(int(args[1]),int(args[2]))
+            self.send_message(mto=re_jid, mbody=str(res), mtype=mtype)
+        except TypeError as e:
+            self.send_message(mto=re_jid,mbody='不是两个数',mtype=mtype)
+        except IndexError as e:
+            self.send_message(re_jid,'没有输入',mtype=mtype)
+        except ValueError as e:
+            self.send_message(re_jid,'范围出错',mtype=mtype)
+
+    # admin
+    def get_jid(self, re_jid, mtype, args):
+        try:
+            nick_to_search = args[1]
+            self.send_message(mto=re_jid,
+                              mbody=self.plugin['xep_0045'].get_jid_property(re_jid, nick_to_search,
+                                                                             'jid'),
+                              mtype=mtype
+                              )
+        except IndexError as e:
+            self.send_message(re_jid, '没有输入', mtype=mtype)
+
+    def admin_help(self, re_jid, mtype, args):
+        res = ""
+        for k, d in self.admin_cmd.items():
+            res = res + "{} : {},需要{}个参数\n".format(k, d[2], d[1])
+        self.send_message(mto=re_jid, mbody=res, mtype=mtype)
+
+    async def outcast(self, re_jid, mtype, args):
+        try:
+            jid_to_outcast = JID(args[1])
+
+            if jid_to_outcast.bare != self.jid:
+                await self.plugin['xep_0045'].set_affiliation(re_jid, 'outcast', jid=jid_to_outcast)
+                self.send_message(
+                    mto=re_jid,
+                    mbody='驱逐 %s ' % jid_to_outcast,
+                    mtype=mtype
+                )
+        except IndexError as e:
+            self.send_message(re_jid, '没有输入', mtype=mtype)
+
+    async def set_aff(self, re_jid, mtype, args):
+        try:
+            nick_to_set = args[1]
+            nick_set_to = args[2]
+            if nick_set_to not in ['member', 'admin', 'owner', 'none']:
+                self.send_message(mto=re_jid,
+                                  mbody='not an affiliation',
+                                  mtype=mtype
+                                  )
+            else:
+                await self.plugin['xep_0045'].set_affiliation(re_jid, nick_set_to, nick=nick_to_set)
+                self.send_message(mto=re_jid,
+                                  mbody='affiliation set done',
+                                  mtype=mtype
+                                  )
+        except IndexError as e:
+            self.send_message(re_jid, '没有输入', mtype=mtype)
+
 
 if __name__ == '__main__':
     if sys.platform == 'win32':
@@ -250,19 +305,19 @@ if __name__ == '__main__':
     parser.add_argument("-n", "--nick", dest="nick",
                         help="nick to use")
 
-    args = parser.parse_args()
+    argsg = parser.parse_args()
 
     # Setup logging.
-    logging.basicConfig(level=args.loglevel,
+    logging.basicConfig(level=argsg.loglevel,
                         format='%(levelname)-8s %(message)s')
 
-    if args.jid is None:
-        args.jid = input("Username: ")
-    if args.password is None:
-        args.password = getpass("Password: ")
-    if args.nick is None:
-        args.nick = getpass("nick: ")
+    if argsg.jid is None:
+        argsg.jid = input("Username: ")
+    if argsg.password is None:
+        argsg.password = getpass("Password: ")
+    if argsg.nick is None:
+        argsg.nick = getpass("nick: ")
 
-    xmpp = Bot(args.jid, args.password, args.room, args.nick)
+    xmpp = Bot(argsg.jid, argsg.password, argsg.room, argsg.nick)
     xmpp.connect()
     xmpp.process()
