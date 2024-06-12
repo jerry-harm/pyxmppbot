@@ -237,7 +237,7 @@ class Bot(ClientXMPP):
     async def stats_mam(self, re_jid, mtype, args):
         try:
             num = int(args[1])
-            mam = self.plugin['xep_0313'].iterate(re_jid, total=num, reverse=True)
+            mam = self.plugin['xep_0313'].iterate(re_jid.bare, total=num, reverse=True)
             res = defaultdict(int)
             async for m in mam:
                 res[m['mam_result']['forwarded']['message']['from'].resource] += 1
