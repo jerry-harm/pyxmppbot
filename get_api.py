@@ -1,11 +1,25 @@
+import urllib.error
+from typing import Any
 from urllib.request import Request, urlopen
 import random
 import ssl
 import json
 
 headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36 QIHU 360SE"}
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:129.0) Gecko/20100101 Firefox/129.0"
+}
 
+
+def open_ssl(url, api='')-> Any :
+    try:
+
+        req = Request(url=url+api, headers=headers)
+        res = urlopen(url=req, context=ssl.create_default_context())
+        print(res.url)
+        return res
+    except urllib.error.HTTPError as e:
+        print(e)
+        return False
 
 def api1(url="https://sex.nyan.xyz/api/v2/"):
     """
@@ -13,15 +27,12 @@ def api1(url="https://sex.nyan.xyz/api/v2/"):
     :return: url
     """
     r18 = random.randint(0, 1)
-    url = url + "?r18=" + str(r18)
-    try:
-        req = Request(url=url, headers=headers)
-        res = urlopen(url=req, context=ssl.create_default_context())
-        if int(res.status) == 200:
-            json_str = res.read().decode("utf-8")
-            return json.loads(json_str)['data'][0]['url']
-    except ConnectionError as e:
-        print(e)
+    api = "?r18=" + str(r18)
+    res = open_ssl(url, api)
+    if res:
+        json_str = res.read().decode('utf-8')
+        return json.loads(json_str)['data'][0]['url']
+    else:
         return False
 
 
@@ -32,31 +43,30 @@ def api2(url='https://image.anosu.top/pixiv/json'):
     :return:
     """
     r18 = 2
-    url = url + "?r18=" + str(r18)
-    try:
-        req = Request(url=url, headers=headers)
-        res = urlopen(url=req, context=ssl.create_default_context())
-        if int(res.status) == 200:
-            json_str = res.read().decode("utf-8")
-            return json.loads(json_str)[0]['url']
-    except ConnectionError as e:
-        print(e)
-        return False
+    api = "?r18=" + str(r18)
+    res = open_ssl(url, api)
+    if res:
+        json_str = res.read().decode('utf-8')
+        return json.loads(json_str)[0]['url']
+    return False
 
 
-def api3(url='https://api.r10086.com/%E6%A8%B1%E9%81%93%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87api%E6%8E%A5%E5%8F%A3.php?%E5%9B%BE%E7%89%87%E7%B3%BB%E5%88%97=%E6%97%A5%E6%9C%ACCOS%E4%B8%AD%E5%9B%BDCOS'):
+def api3():
     """
     cosplay https://api.r10086.com
     :return:
     """
-    try:
-        req = Request(url, headers=headers)
-        res = urlopen(req, context=ssl.create_default_context())
-        if int(res.status) == 200:
-            return res.url
+    url = random.choice([
+        'https://api.r10086.com/%E6%A8%B1%E9%81%93%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87api%E6%8E%A5%E5%8F%A3.php?%E5%9B%BE%E7%89%87%E7%B3%BB%E5%88%97=%E6%9E%81%E5%93%81%E7%BE%8E%E5%A5%B3%E5%9B%BE%E7%89%87',
+        'https://api.r10086.com/%E6%A8%B1%E9%81%93%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87api%E6%8E%A5%E5%8F%A3.php?%E5%9B%BE%E7%89%87%E7%B3%BB%E5%88%97=%E6%9E%81%E5%93%81%E7%BE%8E%E5%A5%B3%E5%9B%BE%E7%89%87',
+        'https://api.r10086.com/%E6%A8%B1%E9%81%93%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87api%E6%8E%A5%E5%8F%A3.php?%E5%9B%BE%E7%89%87%E7%B3%BB%E5%88%97=%E6%97%A5%E6%9C%ACCOS%E4%B8%AD%E5%9B%BDCOS',
+        'https://api.r10086.com/%E6%A8%B1%E9%81%93%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87api%E6%8E%A5%E5%8F%A3.php?%E5%9B%BE%E7%89%87%E7%B3%BB%E5%88%97=%E6%AD%BB%E5%BA%93%E6%B0%B4%E8%90%9D%E8%8E%89',
 
-    except ConnectionError as e:
-        print(e)
+    ])
+    res = open_ssl(url)
+    if res:
+        return res.url
+    else:
         return False
 
 
@@ -66,16 +76,12 @@ def api4(url='https://api.lolimi.cn/API/meinv/api.php'):
     :param url:
     :return:
     """
-    try:
-        req = Request(url, headers=headers)
-        res = urlopen(req, context=ssl.create_default_context())
-        if int(res.status) == 200:
-            json_str = res.read().decode("utf-8")
-            return json.loads(json_str)['data']['image']
+    res = open_ssl(url)
+    if res:
+        json_str = res.read().decode('utf-8')
+        return json.loads(json_str)['data']['image']
+    return False
 
-    except ConnectionError as e:
-        print(e)
-        return False
 
 def api5():
     """
@@ -93,12 +99,15 @@ def api5():
     else:
         selected_image_number = random.randint(1001, 1516)
     for ext in extensions:
-        image_url =f"{base_url}{batch_choice}dragon_{selected_image_number}_{ext}"
-        return image_url
+        image_url = f"{base_url}{batch_choice}dragon_{selected_image_number}_{ext}"
+        if open_ssl(image_url):
+            return image_url
+        else:
+            return False
 
-setu_apis = [api1, api2]
-cosplay_apis = [api3, api4]
-loog=api5
 
-if __name__ == '__main__':
-    print(api2())
+apis = {
+    "色图": [api1, api2],
+    "写真": [api3, api4],
+    "龙图": [api5]
+}

@@ -33,11 +33,10 @@ class Bot(ClientXMPP):
         self.register_plugin('xep_0045')  # muc plugin
         self.register_plugin('xep_0249')  # muc invite
         self.register_plugin('xep_0066')  # my out of band
-        self.pic_cmds = {"色图": get_api.setu_apis,
-                         "写真": get_api.cosplay_apis,
-                         "龙图": [get_api.loog]
-                         }
-        self.no_arg_cmds = {"help": self.show_functions}
+        self.cmds = {"色图": [self.send_img, 0, "随机动漫色图"],
+                     "写真": [self.send_img, 0, "随机写真"],
+                     "龙图": [self.send_img, 0, "随机龙图"],
+                     "help": [self.show_functions, 0, "显示所有命令"]}
 
     def invited(self, msg: Message):
         """
@@ -127,8 +126,8 @@ class Bot(ClientXMPP):
                                   mtype=mtype
                                   )
 
-    def get_img(self, re_jid, mtype, api):
-        url = api()
+    def send_img(self, re_jid, mtype, args):
+        url = random.choice(get_api.apis[args[0]])()
         if not url:
             self.send_message(
                 mto=re_jid,
@@ -142,9 +141,13 @@ class Bot(ClientXMPP):
         msg['body'] = url
         msg['oob']['url'] = url
         self.send(msg)
+        self.send_message(mto=re_jid, mbody=url, mtype=mtype)
 
-    def show_functions(self, re_jid, mtype):
-        self.send_message(mto=re_jid, mtype=mtype, mbody="目前支持图片api调用{}，无参数命令调用{}".format(list(self.pic_cmds.keys()),list(self.no_arg_cmds.keys())))
+    def show_functions(self, re_jid, mtype, args):
+        res = ""
+        for k, d in self.cmds.items():
+            res = res + "{} : {},需要{}个参数\n".format(k, d[2], d[1])
+        self.send_message(mto=re_jid, mbody=res,mtype=mtype)
 
     def resolve_muc_usr_cmd(self, msg: Message):
         """
@@ -152,7 +155,7 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        cmd = msg['body'].split(' ')
+        cmd: list = msg['body'].split(' ')
         # 怎么来的怎么回去
         mtype: MessageTypes = msg['type']
         if msg['type'] == 'groupchat':
@@ -161,10 +164,9 @@ class Bot(ClientXMPP):
             re_jid = msg['from']
 
         for i in cmd:
-            if i in self.pic_cmds:
-                self.get_img(re_jid, mtype, random.choice(self.pic_cmds[i]))
-            if i in self.no_arg_cmds:
-                self.no_arg_cmds[i](re_jid, mtype)
+            if i in self.cmds:
+                self.cmds[i][0](re_jid=re_jid, mtype=mtype,
+                                args=cmd[cmd.index(i) :cmd.index(i) + self.cmds[i][1] + 1])
 
     def resolve_chat(self, msg: Message):
         """
