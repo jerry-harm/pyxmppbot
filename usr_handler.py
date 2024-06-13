@@ -7,7 +7,7 @@ import get_api
 
 
 class UserHandler:
-    def __init__(self, client: ClientXMPP, to: JID, mtype):
+    def __init__(self, client: ClientXMPP, to: JID, mtype, nick):
         self.client = client
         self.cmds = {
             "help": [self.show_functions, 0, "显示所有命令"],
@@ -17,9 +17,11 @@ class UserHandler:
             "QQ": [self.qq_information, 1, "获取一个qq号的头像和邮箱"],
             "随机数": [self.send_random, 2, "获得输入两数间的随机数"],
             "统计": [self.stats_mam, 1, "获取n条内发言次数统计，请不要超过500条"],
+            "加入": [self.join_room, 1, "加入指定jid的房间"]
         }
         self.to = to
         self.mtype = mtype
+        self.nick = nick
 
     def send_img(self, args):
         url = random.choice(get_api.apis[args[0]])()
@@ -75,7 +77,7 @@ class UserHandler:
     async def stats_mam(self, args):
         try:
             num = int(args[1])
-            mam = self.client.plugin['xep_0313'].iterate(self.to.bare, total=num, reverse=True)
+            mam = self.client.plugin['xep_0313'].iterate(JID(self.to.bare), total=num, reverse=True)
             res = defaultdict(int)
             async for m in mam:
                 res[m['mam_result']['forwarded']['message']['from'].resource] += 1
@@ -88,5 +90,9 @@ class UserHandler:
         except TypeError:
             self.client.send_message(self.to, mbody='输入的不是数！', mtype=self.mtype)
 
-    def join_room(self,args):
-        pass
+    def join_room(self, args):
+        try:
+            self.client.plugin['xep_0045'].join_muc(args[1], nick=self.nick)
+            self.client.send_message(mtype=self.mtype, mto=self.to, mbody='尝试加入')
+        except IndexError:
+            self.client.send_message(self.to, mbody='请输入房间', mtype=self.mtype)

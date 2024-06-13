@@ -116,7 +116,7 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
-        handler = UserHandler(self, re_jid, mtype)
+        handler = UserHandler(self, re_jid, mtype, self.nick)
         right_called = False
         for i in cmd:
             if i in handler.cmds:
