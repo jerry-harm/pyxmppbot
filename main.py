@@ -4,6 +4,7 @@ import logging
 import sys
 from argparse import ArgumentParser
 from getpass import getpass
+from typing import NewType
 
 from slixmpp import ClientXMPP
 from slixmpp import JID
@@ -26,6 +27,7 @@ class Bot(ClientXMPP):
         self.add_event_handler("message", self.message)
         self.add_event_handler("groupchat_message", self.muc_message)
         self.add_event_handler("groupchat_direct_invite", self.invited)
+
         # If you wanted more functionality, here's how to register plugins:
         self.register_plugin('xep_0030')  # Service Discovery
         self.register_plugin('xep_0313')  # mam
@@ -116,7 +118,7 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
-        handler = UserHandler(self, re_jid, mtype, self.nick)
+        handler = UserHandler(self, re_jid, mtype, self.nick,(self.when_muc_joined,self.when_muc_offed))
         right_called = False
         for i in cmd:
             if i in handler.cmds:
@@ -184,6 +186,18 @@ class Bot(ClientXMPP):
                     await self.resolve_muc_admin_cmd(msg)
             else:
                 await self.resolve_muc_usr_cmd(msg)
+
+    def when_muc_joined(self, msg):
+        print(msg['from'])
+        self.send_message(mto=msg['from'].bare,
+                          mbody='欢迎{}!'.format(msg['from'].resource),
+                          mtype='groupchat')
+
+    def when_muc_offed(self, msg):
+        print(msg['from'])
+        self.send_message(mto=msg['from'].bare,
+                          mbody='再见{}!'.format(msg['from'].resource),
+                          mtype='groupchat')
 
 
 if __name__ == '__main__':

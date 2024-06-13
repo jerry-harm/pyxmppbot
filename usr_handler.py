@@ -7,7 +7,7 @@ import get_api
 
 
 class UserHandler:
-    def __init__(self, client: ClientXMPP, to: JID, mtype, nick):
+    def __init__(self, client: ClientXMPP, to,mtype,  nick, handlers:tuple):
         self.client = client
         self.cmds = {
             "help": [self.show_functions, 0, "显示所有命令"],
@@ -17,8 +17,12 @@ class UserHandler:
             "QQ": [self.qq_information, 1, "获取一个qq号的头像和邮箱"],
             "随机数": [self.send_random, 2, "获得输入两数间的随机数"],
             "统计": [self.stats_mam, 1, "获取n条内发言次数统计，请不要超过500条"],
-            "加入": [self.join_room, 1, "加入指定jid的房间"]
+            "加入": [self.join_room, 1, "加入指定jid的房间"],
+            "上线欢迎": [self.welcome, 1, "开或关"],
+            "下线道别": [self.goodbye, 1, "开或关"]
         }
+        self.event_handlers = {"上线欢迎": handlers[0],
+                               "下线道别": handlers[1]}
         self.to = to
         self.mtype = mtype
         self.nick = nick
@@ -96,3 +100,27 @@ class UserHandler:
             self.client.send_message(mtype=self.mtype, mto=self.to, mbody='尝试加入')
         except IndexError:
             self.client.send_message(self.to, mbody='请输入房间', mtype=self.mtype)
+
+    def welcome(self, args):
+        try:
+            if self.mtype != "groupchat":
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请在群聊中使用此命令')
+                return False
+            if args[1] == '开':
+                self.client.add_event_handler("muc::%s::got_online"%self.to, self.event_handlers['上线欢迎'])
+            else:
+                self.client.del_event_handler("muc::%s::got_online"%self.to, self.event_handlers['上线欢迎'])
+        except IndexError:
+            self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')
+
+    def goodbye(self, args):
+        try:
+            if self.mtype != "groupchat":
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请在群聊中使用此命令')
+                return False
+            if args[1] == '开':
+                self.client.add_event_handler("muc::%s::got_offline" % self.to, self.event_handlers['下线道别'])
+            else:
+                self.client.del_event_handler("muc::%s::got_offline" % self.to, self.event_handlers['下线道别'])
+        except IndexError:
+            self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')

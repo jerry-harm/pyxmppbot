@@ -2,7 +2,7 @@ from slixmpp import JID, ClientXMPP
 
 
 class AdminHandler:
-    def __init__(self, client: ClientXMPP, to: JID, mtype):
+    def __init__(self, client: ClientXMPP,to,mtype,nick):
         self.client = client
         self.cmds = {"获取JID": [self.get_jid, 1, "管理员获取JID"],
                      "help": [self.admin_help, 0, "管理员帮助"],
@@ -11,6 +11,7 @@ class AdminHandler:
                      }
         self.to = to
         self.mtype = mtype
+        self.nick = nick
 
     # admin
     def get_jid(self, args):
