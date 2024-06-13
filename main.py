@@ -89,8 +89,10 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
+        right_called = False
         for i in cmd:
             if i in self.admin_handler.cmds:
+                right_called = True
                 if inspect.iscoroutinefunction(self.admin_handler.cmds[i][0]):
                     await self.admin_handler.cmds[i][0](
                         re_jid=re_jid, mtype=mtype,
@@ -99,6 +101,10 @@ class Bot(ClientXMPP):
                     self.admin_handler.cmds[i][0](
                         re_jid=re_jid, mtype=mtype,
                         args=cmd[cmd.index(i):])
+            if not right_called:
+                self.send_message(re_jid, mtype=mtype, mbody="""
+                    输入参数无效或为输入参数，请输入 {} ADMIN help 来获取帮助
+                    """.format(self.nick))
 
     async def resolve_muc_usr_cmd(self, msg: Message):
         """
@@ -113,16 +119,23 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
+        right_called = False
         for i in cmd:
             if i in self.user_handler.cmds:
+                right_called = True
+                # 只调用一次
                 if inspect.iscoroutinefunction(self.user_handler.cmds[i][0]):
                     await self.user_handler.cmds[i][0](re_jid=re_jid, mtype=mtype,
                                                        args=cmd[cmd.index(i):])
+                    break
                 else:
                     self.user_handler.cmds[i][0](re_jid=re_jid, mtype=mtype,
                                                  args=cmd[cmd.index(i):])
-
-
+                    break
+        if not right_called:
+            self.send_message(re_jid, mtype=mtype, mbody="""
+                输入参数无效或为输入参数，请输入 {} help 来获取帮助
+                """.format(self.nick))
 
     async def resolve_chat(self, msg: Message):
         """
