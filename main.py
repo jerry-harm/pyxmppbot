@@ -21,8 +21,6 @@ class Bot(ClientXMPP):
 
         self.room = JID(room)
         self.nick = nick
-        self.user_handler = UserHandler(self)
-        self.admin_handler = AdminHandler(self)
 
         self.add_event_handler("session_start", self.start)
         self.add_event_handler("message", self.message)
@@ -90,19 +88,18 @@ class Bot(ClientXMPP):
         else:
             re_jid = msg['from']
         right_called = False
+        handler = AdminHandler(self, re_jid, mtype)
         for i in cmd:
-            if i in self.admin_handler.cmds:
+            if i in handler.cmds:
                 right_called = True
-                if inspect.iscoroutinefunction(self.admin_handler.cmds[i][0]):
-                    await self.admin_handler.cmds[i][0](
-                        re_jid=re_jid, mtype=mtype,
+                if inspect.iscoroutinefunction(handler.cmds[i][0]):
+                    await handler.cmds[i][0](
                         args=cmd[cmd.index(i):])
                 else:
-                    self.admin_handler.cmds[i][0](
-                        re_jid=re_jid, mtype=mtype,
+                    handler.cmds[i][0](
                         args=cmd[cmd.index(i):])
-            if not right_called:
-                self.send_message(re_jid, mtype=mtype, mbody="""
+        if not right_called:
+            self.send_message(re_jid, mtype=mtype, mbody="""
                     输入参数无效或为输入参数，请输入 {} ADMIN help 来获取帮助
                     """.format(self.nick))
 
@@ -119,18 +116,17 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
+        handler = UserHandler(self, re_jid, mtype)
         right_called = False
         for i in cmd:
-            if i in self.user_handler.cmds:
+            if i in handler.cmds:
                 right_called = True
                 # 只调用一次
-                if inspect.iscoroutinefunction(self.user_handler.cmds[i][0]):
-                    await self.user_handler.cmds[i][0](re_jid=re_jid, mtype=mtype,
-                                                       args=cmd[cmd.index(i):])
+                if inspect.iscoroutinefunction(handler.cmds[i][0]):
+                    await handler.cmds[i][0](args=cmd[cmd.index(i):])
                     break
                 else:
-                    self.user_handler.cmds[i][0](re_jid=re_jid, mtype=mtype,
-                                                 args=cmd[cmd.index(i):])
+                    handler.cmds[i][0](args=cmd[cmd.index(i):])
                     break
         if not right_called:
             self.send_message(re_jid, mtype=mtype, mbody="""
