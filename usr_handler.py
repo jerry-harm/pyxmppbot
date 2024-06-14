@@ -46,7 +46,7 @@ class UserHandler:
         self.client.send_message(mto=self.to, mbody=url, mtype=self.mtype)
 
     def show_functions(self, args):
-        res = "每个参数之间请用空格隔开"
+        res = "每个参数之间请用空格隔开,命令请勿有引用操作"
         for k, d in self.cmds.items():
             res = res + "{} : {},需要{}个参数\n".format(k, d[2], d[1])
         self.client.send_message(mto=self.to, mbody=res, mtype=self.mtype)

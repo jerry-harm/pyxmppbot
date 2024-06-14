@@ -82,7 +82,7 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        cmd = re.split('\s|:', msg['body'])
+        cmd = re.split('\s|:|\n', msg['body'])
         # 怎么来的怎么回去
         mtype: MessageTypes = msg['type']
         if msg['type'] == 'groupchat':
@@ -111,7 +111,7 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        cmd: list = re.split('\s|:', msg['body'])
+        cmd: list = re.split('\s|:|\n', msg['body'])
         # 怎么来的怎么回去
         mtype: MessageTypes = msg['type']
         if msg['type'] == 'groupchat':
@@ -180,7 +180,7 @@ class Bot(ClientXMPP):
         :return:
         """
         # 被提到
-        if msg['mucnick'] != self.nick and self.nick in msg['body']:
+        if msg['mucnick'] != self.nick and self.nick in msg['body'] and ">" not in msg['body']:
             if 'ADMIN' in msg['body']:
                 if await self.confirm_room_admin(msg):
                     await self.resolve_muc_admin_cmd(msg)
@@ -197,8 +197,6 @@ class Bot(ClientXMPP):
                           mbody='再见{}!'.format(msg['from'].resource),
                           mtype='groupchat')
 
-    def scheduled_msg(self, msg):
-        print()
 
 
 if __name__ == '__main__':

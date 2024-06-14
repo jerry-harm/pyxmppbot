@@ -15,7 +15,6 @@ def open_ssl(url, api='') -> Any:
 
         req = Request(url=url + api, headers=headers)
         res = urlopen(url=req, context=ssl.create_default_context())
-        print(res.url)
         return res
     except urllib.error.HTTPError as e:
         print(e)
