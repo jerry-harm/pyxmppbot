@@ -1,10 +1,10 @@
 #!../.venv/bin/python
 import inspect
 import logging
+import re
 import sys
 from argparse import ArgumentParser
 from getpass import getpass
-from typing import NewType
 
 from slixmpp import ClientXMPP
 from slixmpp import JID
@@ -82,7 +82,7 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        cmd = msg['body'].split(' ')
+        cmd = re.split('\s|:', msg['body'])
         # 怎么来的怎么回去
         mtype: MessageTypes = msg['type']
         if msg['type'] == 'groupchat':
@@ -111,14 +111,14 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        cmd: list = msg['body'].split(' ')
+        cmd: list = re.split('\s|:', msg['body'])
         # 怎么来的怎么回去
         mtype: MessageTypes = msg['type']
         if msg['type'] == 'groupchat':
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
-        handler = UserHandler(self, re_jid, mtype, self.nick,(self.when_muc_joined,self.when_muc_offed))
+        handler = UserHandler(self, re_jid, mtype, self.nick, (self.when_muc_joined, self.when_muc_offed))
         right_called = False
         for i in cmd:
             if i in handler.cmds:
@@ -188,16 +188,17 @@ class Bot(ClientXMPP):
                 await self.resolve_muc_usr_cmd(msg)
 
     def when_muc_joined(self, msg):
-        print(msg['from'])
         self.send_message(mto=msg['from'].bare,
                           mbody='欢迎{}!'.format(msg['from'].resource),
                           mtype='groupchat')
 
     def when_muc_offed(self, msg):
-        print(msg['from'])
         self.send_message(mto=msg['from'].bare,
                           mbody='再见{}!'.format(msg['from'].resource),
                           mtype='groupchat')
+
+    def scheduled_msg(self, msg):
+        print()
 
 
 if __name__ == '__main__':

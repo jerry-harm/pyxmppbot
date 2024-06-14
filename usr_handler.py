@@ -7,7 +7,7 @@ import get_api
 
 
 class UserHandler:
-    def __init__(self, client: ClientXMPP, to,mtype,  nick, handlers:tuple):
+    def __init__(self, client: ClientXMPP, to, mtype, nick, handlers: tuple):
         self.client = client
         self.cmds = {
             "help": [self.show_functions, 0, "显示所有命令"],
@@ -16,14 +16,15 @@ class UserHandler:
             "龙图": [self.send_img, 0, "随机龙图"],
             "QQ": [self.qq_information, 1, "获取一个qq号的头像和邮箱"],
             "随机数": [self.send_random, 2, "获得输入两数间的随机数"],
-            "统计": [self.stats_mam, 1, "获取n条内发言次数统计，请不要超过500条"],
+            "统计": [self.stats_mam, 1, "获取n条内发言次数统计"],
             "加入": [self.join_room, 1, "加入指定jid的房间"],
             "上线欢迎": [self.welcome, 1, "开或关"],
-            "下线道别": [self.goodbye, 1, "开或关"]
+            "下线道别": [self.goodbye, 1, "开或关"],
+            "定时消息": [self.scheduled_msg, 3, "开或关 计时分钟数 定时发送的内容"]
         }
         self.event_handlers = {"上线欢迎": handlers[0],
                                "下线道别": handlers[1]}
-        self.to = to
+        self.to = JID(to)
         self.mtype = mtype
         self.nick = nick
 
@@ -45,7 +46,7 @@ class UserHandler:
         self.client.send_message(mto=self.to, mbody=url, mtype=self.mtype)
 
     def show_functions(self, args):
-        res = ""
+        res = "每个参数之间请用空格隔开"
         for k, d in self.cmds.items():
             res = res + "{} : {},需要{}个参数\n".format(k, d[2], d[1])
         self.client.send_message(mto=self.to, mbody=res, mtype=self.mtype)
@@ -81,7 +82,7 @@ class UserHandler:
     async def stats_mam(self, args):
         try:
             num = int(args[1])
-            mam = self.client.plugin['xep_0313'].iterate(JID(self.to.bare), total=num, reverse=True)
+            mam = self.client.plugin['xep_0313'].iterate(self.to.bare, total=num, reverse=True)
             res = defaultdict(int)
             async for m in mam:
                 res[m['mam_result']['forwarded']['message']['from'].resource] += 1
@@ -107,9 +108,11 @@ class UserHandler:
                 self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请在群聊中使用此命令')
                 return False
             if args[1] == '开':
-                self.client.add_event_handler("muc::%s::got_online"%self.to, self.event_handlers['上线欢迎'])
+                self.client.add_event_handler("muc::%s::got_online" % self.to, self.event_handlers['上线欢迎'])
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
             else:
-                self.client.del_event_handler("muc::%s::got_online"%self.to, self.event_handlers['上线欢迎'])
+                self.client.del_event_handler("muc::%s::got_online" % self.to, self.event_handlers['上线欢迎'])
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
         except IndexError:
             self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')
 
@@ -120,7 +123,26 @@ class UserHandler:
                 return False
             if args[1] == '开':
                 self.client.add_event_handler("muc::%s::got_offline" % self.to, self.event_handlers['下线道别'])
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
             else:
                 self.client.del_event_handler("muc::%s::got_offline" % self.to, self.event_handlers['下线道别'])
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
         except IndexError:
             self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')
+
+    def scheduled_msg(self, args):
+        try:
+            if args[1] == '开':
+                def send():
+                    msg = args[3:]
+                    self.client.send_message(mto=self.to, mbody=msg, mtype=self.mtype)
+
+                self.client.schedule("%s" % self.to, int(args[2]) * 60, send)
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+            else:
+                self.client.cancel_schedule("%s" % self.to)
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+        except IndexError:
+            self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')
+        except TypeError:
+            self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入延时分钟数')
