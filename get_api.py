@@ -104,7 +104,5 @@ apis = {
 
 
 def qq_json(qq):
-    res = open_ssl('https://v.api.aa1.cn/api/qqjson/index.php', '?qq=' + str(qq))
-    if res:
-        return json.loads(res.read().decode('utf-8'))
+    return "https://q2.qlogo.cn/headimg_dl?dst_uin={}&spec=100".format(qq)
 

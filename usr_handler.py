@@ -56,12 +56,12 @@ class UserHandler:
             res = get_api.qq_json(args[1])
             if res:
                 self.client.send_message(mtype=self.mtype, mto=self.to,
-                                         mbody="头像：{}\n邮箱：{}".format(res["touxiang"], res["email"]))
+                                         mbody=res)
                 msg = Message()
                 msg['type'] = self.mtype
                 msg['to'] = self.to
-                msg['body'] = res['touxiang']
-                msg['oob']['url'] = res['touxiang']
+                msg['body'] = res
+                msg['oob']['url'] = res
                 self.client.send(msg)
             else:
                 self.client.send_message(mbody="调用出错", mtype=self.mtype, mto=self.to)
