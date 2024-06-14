@@ -109,10 +109,10 @@ class UserHandler:
                 return False
             if args[1] == '开':
                 self.client.add_event_handler("muc::%s::got_online" % self.to, self.event_handlers['上线欢迎'])
-                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='开启')
             else:
                 self.client.del_event_handler("muc::%s::got_online" % self.to, self.event_handlers['上线欢迎'])
-                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='关闭')
         except IndexError:
             self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')
 
@@ -123,10 +123,10 @@ class UserHandler:
                 return False
             if args[1] == '开':
                 self.client.add_event_handler("muc::%s::got_offline" % self.to, self.event_handlers['下线道别'])
-                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='开启')
             else:
                 self.client.del_event_handler("muc::%s::got_offline" % self.to, self.event_handlers['下线道别'])
-                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='关闭')
         except IndexError:
             self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')
 
@@ -138,11 +138,11 @@ class UserHandler:
                     self.client.send_message(mto=self.to, mbody=msg, mtype=self.mtype)
 
                 self.client.schedule("%s" % self.to, int(args[2]) * 60, send)
-                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='开启')
             else:
                 self.client.cancel_schedule("%s" % self.to)
-                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='处理完成')
+                self.client.send_message(mto=self.to, mtype=self.mtype, mbody='关闭')
         except IndexError:
             self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入开或关')
-        except TypeError:
-            self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入延时分钟数')
+        except ValueError:
+            self.client.send_message(mto=self.to, mtype=self.mtype, mbody='请输入整数延时分钟数')

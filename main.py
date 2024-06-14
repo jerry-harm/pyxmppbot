@@ -36,6 +36,7 @@ class Bot(ClientXMPP):
         self.register_plugin('xep_0045')  # muc plugin
         self.register_plugin('xep_0249')  # muc invite
         self.register_plugin('xep_0066')  # my out of band
+        self.register_plugin('xep_0084') # avatar
 
     # base
     def invited(self, msg: Message):
