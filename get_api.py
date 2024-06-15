@@ -93,7 +93,8 @@ def api5():
         selected_image_number = random.randint(1001, 1516)
     for ext in extensions:
         image_url = f"{base_url}{batch_choice}dragon_{selected_image_number}_{ext}"
-        return image_url
+        if open_ssl(image_url):
+            return image_url
 
 
 apis = {
