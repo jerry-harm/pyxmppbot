@@ -18,6 +18,8 @@ def open_ssl(url, api='') -> Any:
         return res
     except urllib.error.HTTPError as e:
         print(e)
+    except urllib.error.URLError as e:
+        print(e)
 
 
 def api1(url="https://sex.nyan.xyz/api/v2/"):
@@ -95,6 +97,7 @@ def api5():
         image_url = f"{base_url}{batch_choice}dragon_{selected_image_number}_{ext}"
         if open_ssl(image_url):
             return image_url
+    return False
 
 
 apis = {
