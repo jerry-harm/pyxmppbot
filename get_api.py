@@ -101,7 +101,7 @@ def api5():
 
 
 apis = {
-    "色图": [api1, api2],
+    "色图": [api2],
     "写真": [api3, api4],
     "龙图": [api5]
 }
