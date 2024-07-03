@@ -36,7 +36,9 @@ class Bot(ClientXMPP):
         self.register_plugin('xep_0045')  # muc plugin
         self.register_plugin('xep_0249')  # muc invite
         self.register_plugin('xep_0066')  # my out of band
-        self.register_plugin('xep_0084') # avatar
+        self.register_plugin('xep_0084')  # avatar
+
+        self.functions = dict()
 
     # base
     def invited(self, msg: Message):
@@ -60,19 +62,26 @@ class Bot(ClientXMPP):
 
     async def confirm_room_admin(self, msg: Message) -> bool:
         """
-        test if a msg is from room and an
+        confirm if usr in muc is admin
         :param msg:
         :return: bool
         """
         moderators = await self.plugin['xep_0045'].get_roles_list(JID(msg['from'].bare), role='moderator')
-        print(moderators)
+        if msg['from'].resource in moderators:
+            return True
+        else:
+            self.send_message(msg['from'].bare, "you are not admin", mtype='groupchat')
+            return False
+
+    async def confirm_self_room_admin(self,msg: Message) -> bool:
+        """
+        confirm if self in muc is admin
+        :param msg:
+        :return: bool
+        """
+        moderators = await self.plugin['xep_0045'].get_roles_list(JID(msg['from'].bare), role='moderator')
         if self.nick in moderators:
-            # Bot is admin
-            if msg['from'].resource in moderators:
-                return True
-            else:
-                self.send_message(msg['from'].bare, "not admin", mtype='groupchat')
-                return False
+            return True
         else:
             self.send_message(msg['from'].bare, "I'm not admin", mtype='groupchat')
             return False
@@ -90,6 +99,7 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
+        # call only once
         right_called = False
         handler = AdminHandler(self, re_jid, mtype)
         for i in cmd:
