@@ -108,7 +108,7 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        cmd = re.split(':|\\s', msg['body'])
+        cmd = re.split('\\s', msg['body'])
         # confirm called
         right_called = False
 

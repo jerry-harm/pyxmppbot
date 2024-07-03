@@ -20,10 +20,20 @@ class UserHandlerBot(Bot):
             "加入": Handler(self.join_room, "加入指定jid的房间"),
             "上线欢迎": Handler(self.welcome, "开或关"),
             "下线道别": Handler(self.goodbye, "开或关"),
-            "定时消息": Handler(self.scheduled_msg, "开或关 计时分钟数（大于5分钟） 定时发送的内容")
+            "定时消息": Handler(self.scheduled_msg, "开或关 计时分钟数（大于5分钟） 定时发送的内容"),
+            "订阅": Handler(self.feed, "输入：feed网址 或输入：查询 或输入：删除 feed网址 或输入：开 或输入:关 网址请带https前缀"),
         }
         self.default_handler = Handler(self.default_handler, "默认回复功能")
-        Bot.__init__(self, jid, password, room, self.handlers,self.default_handler,nick)
+        self.feed_urls: typing.List[str] = ['https://hnrss.org/newest',
+                                            'https://blog.prosody.im/index.xml',
+                                            'https://plink.anyfeeder.com/thepaper',
+                                            'https://www.ruanyifeng.com/blog/atom.xml',
+                                            'https://v2ex.com/index.xml',
+                                            'https://www.geekpark.net/rss',
+                                            'https://feeds.appinn.com/appinns/',
+                                            'https://www.gcores.com/rss',
+                                            'https://plink.anyfeeder.com/people-daily']
+        Bot.__init__(self, jid, password, room, self.handlers, self.default_handler, nick)
 
     def default_handler(self, cmd, msg: Message):
         self.send(msg.reply("输入 {} help 来获取帮助".format(self.nick)))
@@ -156,6 +166,35 @@ class UserHandlerBot(Bot):
         self.send_message(mto=msg['from'].bare,
                           mbody='再见{}!'.format(msg['from'].resource),
                           mtype='groupchat')
+
+    def feed(self, cmd, msg):
+        def check_feed():
+            res = ''
+            for i in self.feed_urls:
+                res += get_api.feed_to_string(i)
+            self.send(msg.reply(res))
+        try:
+            if cmd[1] == "查询":
+                self.send(msg.reply('\n'.join(self.feed_urls)))
+                return True
+            elif cmd[1] == "关":
+                self.cancel_schedule("feed::%s" % msg.get_from())
+            elif cmd[1] == "开":
+                self.schedule("feed::%s" % msg.get_from(),60,check_feed,repeat=True)
+            elif cmd[1] == "删除":
+                self.feed_urls.remove(cmd[2])
+            else:
+                print(cmd[1])
+                if get_api.open_ssl(cmd[1]):
+                    self.feed_urls.append(cmd[1])
+                else:
+                    self.send(msg.reply('网址无法访问'))
+        except IndexError:
+            self.send(msg.reply('未输入参数'))
+        except ValueError:
+            self.send(msg.reply('没有这个值'))
+
+
 
 
 if __name__ == '__main__':

@@ -1,9 +1,11 @@
+import time
 import urllib.error
 from typing import Any
 from urllib.request import Request, urlopen
 import random
 import ssl
 import json
+import feedparser
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:129.0) Gecko/20100101 Firefox/129.0"
@@ -18,8 +20,12 @@ def open_ssl(url, api='') -> Any:
         return res
     except urllib.error.HTTPError as e:
         print(e)
+        return False
     except urllib.error.URLError as e:
         print(e)
+        return False
+    except ValueError:
+        return False
 
 
 def api1(url="https://sex.nyan.xyz/api/v2/"):
@@ -100,6 +106,26 @@ def api5():
     return False
 
 
+def feed_to_string(url):
+    try:
+        res = feedparser.parse(url)
+        # print(time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed))
+        if time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed) < 60:
+            msg = '''
+            _{}_
+            {}
+            {}
+            {}
+            {}\n
+            '''.format(res.feed.title, res.entries[0].title, res.entries[0].link, res.entries[0].description, res.entries[0].updated)
+            return msg
+        else:
+            return ''
+    except Exception as e:
+        print(e)
+        return False
+
+
 apis = {
     "色图": [api2],
     "写真": [api3, api4],
@@ -109,4 +135,3 @@ apis = {
 
 def qq_json(qq):
     return "https://q2.qlogo.cn/headimg_dl?dst_uin={}&spec=100".format(qq)
-
