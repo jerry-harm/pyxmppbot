@@ -26,6 +26,7 @@ class Handler:
         else:
             self.method(args)
 
+
 class Bot(ClientXMPP):
 
     def __init__(self, jid, password, room, nick="AFM"):
@@ -50,7 +51,7 @@ class Bot(ClientXMPP):
         self.register_plugin('xep_0084')  # avatar
 
         self.handlers: typing.Dict[str, Handler] = dict()
-        self.default_handler: Handler
+        self.default_handler: Handler | None = None
 
     # base
     def invited(self, msg: Message):
@@ -98,7 +99,7 @@ class Bot(ClientXMPP):
             self.send_message(msg['from'].bare, "I'm not admin", mtype='groupchat')
             return False
 
-    async def resolve_muc_admin_cmd(self, msg: Message):
+    async def resolve_muc_cmd(self, msg: Message):
         """
         handler the admin cmd
         :param msg:
@@ -118,44 +119,10 @@ class Bot(ClientXMPP):
             if i in self.handlers:
                 # called
                 right_called = True
-                if inspect.iscoroutinefunction(self.handlers[i]):
-                    await self.handlers[i](cmd[cmd.index(i):])
-                else:
-                    self.handlers[i](cmd[cmd.index(i):])
+                await self.handlers[i](cmd[cmd.index(i):])
         if not right_called:
-            self.send_message(re_jid, mtype=mtype, mbody="""
-                    输入参数无效或为输入参数，请输入 {} ADMIN help 来获取帮助
-                    """.format(self.nick))
-
-    async def resolve_muc_usr_cmd(self, msg: Message):
-        """
-        handel user's cmd
-        :param msg:
-        :return:
-        """
-        cmd: list = re.split('\s|:|\n', msg['body'])
-        # 怎么来的怎么回去
-        mtype: MessageTypes = msg['type']
-        if msg['type'] == 'groupchat':
-            re_jid = msg['from'].bare
-        else:
-            re_jid = msg['from']
-        handler = UserHandler(self, re_jid, mtype, self.nick, (self.when_muc_joined, self.when_muc_offed))
-        right_called = False
-        for i in cmd:
-            if i in handler.cmds:
-                right_called = True
-                # 只调用一次
-                if inspect.iscoroutinefunction(handler.cmds[i][0]):
-                    await handler.cmds[i][0](args=cmd[cmd.index(i):])
-                    break
-                else:
-                    handler.cmds[i][0](args=cmd[cmd.index(i):])
-                    break
-        if not right_called:
-            self.send_message(re_jid, mtype=mtype, mbody="""
-                输入参数无效或为输入参数，请输入 {} help 来获取帮助
-                """.format(self.nick))
+            if self.default_handler:
+                await self.default_handler(cmd)
 
     async def resolve_chat(self, msg: Message):
         """
@@ -163,7 +130,7 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        await self.resolve_muc_usr_cmd(msg)
+        await self.resolve_muc_cmd(msg)
 
     async def start(self, event):
         """
@@ -186,11 +153,7 @@ class Bot(ClientXMPP):
             msg.reply("Thanks for sending\n%s" % msg['body']).send()
             # 判断是否来自群聊
             if self.confirm_from_room(msg):
-                if 'ADMIN' in msg['body']:
-                    if self.confirm_room_admin(msg):
-                        await self.resolve_muc_admin_cmd(msg)
-                else:
-                    await self.resolve_muc_usr_cmd(msg)
+                await self.resolve_muc_cmd(msg)
             else:
                 # 普通私聊处理
                 await self.resolve_chat(msg)
@@ -203,11 +166,7 @@ class Bot(ClientXMPP):
         """
         # 被提到
         if msg['mucnick'] != self.nick and self.nick in msg['body'] and ">" not in msg['body']:
-            if 'ADMIN' in msg['body']:
-                if await self.confirm_room_admin(msg):
-                    await self.resolve_muc_admin_cmd(msg)
-            else:
-                await self.resolve_muc_usr_cmd(msg)
+            await self.resolve_muc_cmd(msg)
 
     def when_muc_joined(self, msg):
         self.send_message(mto=msg['from'].bare,
