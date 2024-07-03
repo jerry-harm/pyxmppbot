@@ -14,17 +14,20 @@ from slixmpp.types import MessageTypes
 
 
 class Handler:
-    def __init__(self, method: typing.Callable, description: str, user_admin: bool, self_admin: bool):
+    def __init__(self, method: typing.Callable, description: str, user_admin: bool = False, self_admin: bool = False):
         self.method = method
         self.description = description
         self.user_admin = user_admin
         self.self_admin = self_admin
 
-    async def __call__(self, args):
+    async def __call__(self, cmd,msg:Message):
         if inspect.iscoroutinefunction(self.method):
-            await self.method(args)
+            await self.method(cmd,msg)
         else:
-            self.method(args)
+            self.method(cmd,msg)
+
+    def __str__(self):
+        return self.description
 
 
 class Bot(ClientXMPP):
@@ -106,12 +109,6 @@ class Bot(ClientXMPP):
         :return:
         """
         cmd = re.split('\s|:|\n', msg['body'])
-        # 怎么来的怎么回去
-        mtype: MessageTypes = msg['type']
-        if msg['type'] == 'groupchat':
-            re_jid = msg['from'].bare
-        else:
-            re_jid = msg['from']
         # confirm called
         right_called = False
 
@@ -119,10 +116,10 @@ class Bot(ClientXMPP):
             if i in self.handlers:
                 # called
                 right_called = True
-                await self.handlers[i](cmd[cmd.index(i):])
+                await self.handlers[i](cmd[cmd.index(i):],msg)
         if not right_called:
             if self.default_handler:
-                await self.default_handler(cmd)
+                await self.default_handler(cmd,msg)
 
     async def resolve_chat(self, msg: Message):
         """
@@ -168,59 +165,4 @@ class Bot(ClientXMPP):
         if msg['mucnick'] != self.nick and self.nick in msg['body'] and ">" not in msg['body']:
             await self.resolve_muc_cmd(msg)
 
-    def when_muc_joined(self, msg):
-        self.send_message(mto=msg['from'].bare,
-                          mbody='欢迎{}!'.format(msg['from'].resource),
-                          mtype='groupchat')
 
-    def when_muc_offed(self, msg):
-        self.send_message(mto=msg['from'].bare,
-                          mbody='再见{}!'.format(msg['from'].resource),
-                          mtype='groupchat')
-
-
-if __name__ == '__main__':
-    if sys.platform == 'win32':
-        import asyncio
-
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    # Set up the command line arguments.
-    parser = ArgumentParser()
-    parser.add_argument("-q", "--quiet", help="set logging to ERROR",
-                        action="store_const",
-                        dest="loglevel",
-                        const=logging.ERROR,
-                        default=logging.INFO)
-    parser.add_argument("-d", "--debug", help="set logging to DEBUG",
-                        action="store_const",
-                        dest="loglevel",
-                        const=logging.DEBUG,
-                        default=logging.INFO)
-
-    # JID and password options.
-    parser.add_argument("-j", "--jid", dest="jid",
-                        help="JID to use")
-    parser.add_argument("-p", "--password", dest="password",
-                        help="password to use")
-    parser.add_argument("-r", "--room", dest="room",
-                        help="room to join")
-    parser.add_argument("-n", "--nick", dest="nick",
-                        help="nick to use")
-
-    argsg = parser.parse_args()
-
-    # Setup logging.
-    logging.basicConfig(level=argsg.loglevel,
-                        format='%(levelname)-8s %(message)s')
-
-    if argsg.jid is None:
-        argsg.jid = input("Username: ")
-    if argsg.password is None:
-        argsg.password = getpass("Password: ")
-    if argsg.nick is None:
-        argsg.nick = getpass("nick: ")
-
-    xmpp = Bot(argsg.jid, argsg.password, argsg.room, argsg.nick)
-    xmpp.connect()
-    xmpp.process()
