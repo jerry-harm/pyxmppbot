@@ -5,15 +5,26 @@ import re
 import sys
 from argparse import ArgumentParser
 from getpass import getpass
+import typing
 
 from slixmpp import ClientXMPP
 from slixmpp import JID
 from slixmpp.stanza.message import Message
 from slixmpp.types import MessageTypes
 
-from admin_handler import AdminHandler
-from usr_handler import UserHandler
 
+class Handler:
+    def __init__(self, method: typing.Callable, description: str, user_admin: bool, self_admin: bool):
+        self.method = method
+        self.description = description
+        self.user_admin = user_admin
+        self.self_admin = self_admin
+
+    async def __call__(self, args):
+        if inspect.iscoroutinefunction(self.method):
+            await self.method(args)
+        else:
+            self.method(args)
 
 class Bot(ClientXMPP):
 
@@ -38,7 +49,8 @@ class Bot(ClientXMPP):
         self.register_plugin('xep_0066')  # my out of band
         self.register_plugin('xep_0084')  # avatar
 
-        self.functions = dict()
+        self.handlers: typing.Dict[str, Handler] = dict()
+        self.default_handler: Handler
 
     # base
     def invited(self, msg: Message):
@@ -73,7 +85,7 @@ class Bot(ClientXMPP):
             self.send_message(msg['from'].bare, "you are not admin", mtype='groupchat')
             return False
 
-    async def confirm_self_room_admin(self,msg: Message) -> bool:
+    async def confirm_self_room_admin(self, msg: Message) -> bool:
         """
         confirm if self in muc is admin
         :param msg:
@@ -88,7 +100,7 @@ class Bot(ClientXMPP):
 
     async def resolve_muc_admin_cmd(self, msg: Message):
         """
-        resolve the admin cmd
+        handler the admin cmd
         :param msg:
         :return:
         """
@@ -99,18 +111,17 @@ class Bot(ClientXMPP):
             re_jid = msg['from'].bare
         else:
             re_jid = msg['from']
-        # call only once
+        # confirm called
         right_called = False
-        handler = AdminHandler(self, re_jid, mtype)
+
         for i in cmd:
-            if i in handler.cmds:
+            if i in self.handlers:
+                # called
                 right_called = True
-                if inspect.iscoroutinefunction(handler.cmds[i][0]):
-                    await handler.cmds[i][0](
-                        args=cmd[cmd.index(i):])
+                if inspect.iscoroutinefunction(self.handlers[i]):
+                    await self.handlers[i](cmd[cmd.index(i):])
                 else:
-                    handler.cmds[i][0](
-                        args=cmd[cmd.index(i):])
+                    self.handlers[i](cmd[cmd.index(i):])
         if not right_called:
             self.send_message(re_jid, mtype=mtype, mbody="""
                     输入参数无效或为输入参数，请输入 {} ADMIN help 来获取帮助
@@ -207,7 +218,6 @@ class Bot(ClientXMPP):
         self.send_message(mto=msg['from'].bare,
                           mbody='再见{}!'.format(msg['from'].resource),
                           mtype='groupchat')
-
 
 
 if __name__ == '__main__':
