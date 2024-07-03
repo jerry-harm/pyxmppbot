@@ -9,7 +9,6 @@ import get_api
 
 class UserHandlerBot(Bot):
     def __init__(self, jid, password, room, nick="AFM"):
-        Bot.__init__(self, jid, password, room, nick)
         self.handlers = {
             "help": Handler(self.show_functions, "显示所有命令"),
             "色图": Handler(self.send_img_api, "随机动漫色图"),
@@ -21,58 +20,59 @@ class UserHandlerBot(Bot):
             "加入": Handler(self.join_room, "加入指定jid的房间"),
             "上线欢迎": Handler(self.welcome, "开或关"),
             "下线道别": Handler(self.goodbye, "开或关"),
-            "定时消息": Handler(self.scheduled_msg, "开或关 计时分钟数（大于10分钟） 定时发送的内容")
+            "定时消息": Handler(self.scheduled_msg, "开或关 计时分钟数（大于5分钟） 定时发送的内容")
         }
         self.default_handler = Handler(self.default_handler, "默认回复功能")
+        Bot.__init__(self, jid, password, room, self.handlers,self.default_handler,nick)
 
     def default_handler(self, cmd, msg: Message):
-        msg.reply("输入 {} help 来获取帮助".format(self.nick))
+        self.send(msg.reply("输入 {} help 来获取帮助".format(self.nick)))
 
     def send_img_api(self, cmd, msg: Message):
         url = random.choice(get_api.apis[cmd[0]])()
         if not url:
-            msg.reply("获取过于频繁或api出错")
+            self.send(msg.reply("获取过于频繁或api出错"))
             return False
         p_msg = Message()
         p_msg['type'] = msg['type']
-        p_msg['to'] = msg['form']
+        p_msg['to'] = msg['from'].bare
         p_msg['body'] = url
         p_msg['oob']['url'] = url
         self.send(p_msg)
-        msg.reply(url)
+        self.send(msg.reply(url))
 
     def show_functions(self, cmd, msg: Message):
         res = "每个参数之间请用空格隔开,命令请勿有引用操作"
         for k, d in self.handlers.items():
             res = res + "{} : {}\n".format(k, d)
-        msg.reply(res)
+        self.send(msg.reply(res))
 
     def qq_information(self, cmd, msg: Message):
         try:
             res = get_api.qq_json(cmd[1])
             if res:
-                msg.reply(res)
+                self.send(msg.reply(res))
                 p_msg = Message()
                 p_msg['type'] = msg['type']
-                p_msg['to'] = msg['from']
+                p_msg['to'] = msg['from'].bare
                 p_msg['body'] = res
                 p_msg['oob']['url'] = res
                 self.send(p_msg)
             else:
-                msg.reply('出错')
+                self.send(msg.reply('出错'))
         except IndexError:
-            msg.reply('没有输入')
+            self.send(msg.reply('没有输入'))
 
     def send_random(self, cmd, msg: Message):
         try:
             res = random.randint(int(cmd[1]), int(cmd[2]))
-            msg.reply(str(res))
+            self.send(msg.reply(str(res)))
         except TypeError:
-            msg.reply('不是数字')
+            self.send(msg.reply('不是数字'))
         except IndexError:
-            msg.reply('没有输入')
+            self.send(msg.reply('没有输入'))
         except ValueError:
-            msg.reply('范围错误')
+            self.send(msg.reply('范围错误'))
 
     async def stats_mam(self, cmd, msg: Message):
         try:
@@ -85,67 +85,67 @@ class UserHandlerBot(Bot):
             res_str = '在最近的{}以内条中：\n'.format(num)
             for nick, times in res.items():
                 res_str += '{}:{}次 '.format(nick, times)
-            msg.reply(res_str)
+            self.send(msg.reply(res_str))
         except IndexError:
-            msg.reply('请输入参数')
+            self.send(msg.reply('请输入参数'))
         except TypeError:
-            msg.reply('输入的不是数')
+            self.send(msg.reply('输入的不是数'))
 
     def join_room(self, cmd, msg: Message):
         try:
             self.plugin['xep_0045'].join_muc(cmd[1], nick=self.nick)
-            msg.reply('尝试加入 {}'.format(cmd[1]))
+            self.send(msg.reply('尝试加入 {}'.format(cmd[1])))
         except IndexError:
-            msg.reply('请输入房间')
+            self.send(msg.reply('请输入房间'))
 
     def welcome(self, cmd, msg: Message):
         try:
             if msg['type'] != "groupchat":
-                msg.reply('请在群聊中使用这条命令')
+                self.send(msg.reply('请在群聊中使用这条命令'))
                 return False
             if cmd[1] == '开':
                 self.add_event_handler("muc::%s::got_online" % msg.get_mucroom(), self.when_muc_joined)
-                msg.reply('开启')
+                self.send(msg.reply('开启'))
             else:
                 self.del_event_handler("muc::%s::got_online" % msg.get_mucroom(), self.when_muc_joined)
-                msg.reply('关闭')
+                self.send(msg.reply('关闭'))
         except IndexError:
-            msg.reply('请输入开或关')
+            self.send(msg.reply('请输入开或关'))
 
     def goodbye(self, cmd, msg: Message):
         try:
             if msg['type'] != "groupchat":
-                msg.reply('请在群聊中使用这条命令')
+                self.send(msg.reply('请在群聊中使用这条命令'))
                 return False
             if cmd[1] == '开':
                 self.add_event_handler("muc::%s::got_offline" % msg.get_mucroom(), self.when_muc_offed)
-                msg.reply('开启')
+                self.send(msg.reply('开启'))
             else:
                 self.del_event_handler("muc::%s::got_offline" % msg.get_mucroom(), self.when_muc_offed)
-                msg.reply('关闭')
+                self.send(msg.reply('关闭'))
         except IndexError:
-            msg.reply('请输入开或关')
+            self.send(msg.reply('请输入开或关'))
 
     def scheduled_msg(self, cmd, msg: Message):
         try:
             if cmd[1] == '开':
                 def send():
                     to_msg = cmd[3:]
-                    msg.reply(to_msg)
+                    self.send(msg.reply(to_msg))
 
-                if cmd[2] <= 10:
-                    msg.reply('时间太短了')
+                if int(cmd[2]) <= 5:
+                    self.send(msg.reply('时间太短了'))
                     return False
 
                 self.schedule("%s" % msg.get_from(), int(cmd[2]) * 60, send, repeat=True)
-                msg.reply('开启')
+                self.send(msg.reply('开启'))
             else:
                 self.cancel_schedule("%s" % msg.get_from())
-                msg.reply('关闭')
+                self.send(msg.reply('关闭'))
         except IndexError:
-            msg.reply('请输入分钟数')
+            self.send(msg.reply('请输入分钟数'))
         except ValueError:
-            msg.reply('请输入整数分钟')
+            self.send(msg.reply('请输入整数分钟'))
 
     def when_muc_joined(self, msg):
         self.send_message(mto=msg['from'].bare,
@@ -187,19 +187,19 @@ if __name__ == '__main__':
     parser.add_argument("-n", "--nick", dest="nick",
                         help="nick to use")
 
-    argsg = parser.parse_args()
+    args = parser.parse_args()
 
     # Setup logging.
-    logging.basicConfig(level=argsg.loglevel,
+    logging.basicConfig(level=args.loglevel,
                         format='%(levelname)-8s %(message)s')
 
-    if argsg.jid is None:
-        argsg.jid = input("Username: ")
-    if argsg.password is None:
-        argsg.password = getpass("Password: ")
-    if argsg.nick is None:
-        argsg.nick = getpass("nick: ")
+    if args.jid is None:
+        args.jid = input("Username: ")
+    if args.password is None:
+        args.password = getpass("Password: ")
+    if args.nick is None:
+        args.nick = getpass("nick: ")
 
-    xmpp = Bot(argsg.jid, argsg.password, argsg.room, argsg.nick)
+    xmpp = UserHandlerBot(args.jid, args.password, args.room, args.nick)
     xmpp.connect()
     xmpp.process()

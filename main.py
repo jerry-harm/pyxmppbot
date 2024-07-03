@@ -20,11 +20,11 @@ class Handler:
         self.user_admin = user_admin
         self.self_admin = self_admin
 
-    async def __call__(self, cmd,msg:Message):
+    async def __call__(self, cmd, msg: Message):
         if inspect.iscoroutinefunction(self.method):
-            await self.method(cmd,msg)
+            await self.method(cmd, msg)
         else:
-            self.method(cmd,msg)
+            self.method(cmd, msg)
 
     def __str__(self):
         return self.description
@@ -32,7 +32,7 @@ class Handler:
 
 class Bot(ClientXMPP):
 
-    def __init__(self, jid, password, room, nick="AFM"):
+    def __init__(self, jid, password, room, handlers, default_handler, nick="AFM"):
         ClientXMPP.__init__(self, jid, password)
 
         self.room = JID(room)
@@ -53,8 +53,8 @@ class Bot(ClientXMPP):
         self.register_plugin('xep_0066')  # my out of band
         self.register_plugin('xep_0084')  # avatar
 
-        self.handlers: typing.Dict[str, Handler] = dict()
-        self.default_handler: Handler | None = None
+        self.handlers: typing.Dict[str, Handler] = handlers
+        self.default_handler: Handler = default_handler
 
     # base
     def invited(self, msg: Message):
@@ -108,7 +108,7 @@ class Bot(ClientXMPP):
         :param msg:
         :return:
         """
-        cmd = re.split('\s|:|\n', msg['body'])
+        cmd = re.split(':|\\s', msg['body'])
         # confirm called
         right_called = False
 
@@ -116,10 +116,10 @@ class Bot(ClientXMPP):
             if i in self.handlers:
                 # called
                 right_called = True
-                await self.handlers[i](cmd[cmd.index(i):],msg)
+                await self.handlers[i](cmd[cmd.index(i):], msg)
         if not right_called:
             if self.default_handler:
-                await self.default_handler(cmd,msg)
+                await self.default_handler(cmd, msg)
 
     async def resolve_chat(self, msg: Message):
         """
@@ -164,5 +164,3 @@ class Bot(ClientXMPP):
         # 被提到
         if msg['mucnick'] != self.nick and self.nick in msg['body'] and ">" not in msg['body']:
             await self.resolve_muc_cmd(msg)
-
-
