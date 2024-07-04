@@ -111,7 +111,7 @@ def feed_to_string(url, check_time):
     try:
         res = feedparser.parse(url)
         msg=''
-        # print(time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed))
+
         if check_time == 0:
             msg += '''
             _{}_
@@ -123,7 +123,8 @@ def feed_to_string(url, check_time):
                        res.entries[0].updated)
             return msg
         for feed in res.entries:
-            if time.mktime(time.localtime()) - time.mktime(feed.updated_parsed) < check_time:
+            print(time.mktime(time.localtime()) - time.gmtime(feed.updated_parsed))
+            if time.mktime(time.localtime()) - time.gmtime(feed.updated_parsed) < check_time:
                 msg += '''
             _{}_
             {}

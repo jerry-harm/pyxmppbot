@@ -168,7 +168,7 @@ class UserHandlerBot(Bot):
                           mtype='groupchat')
 
     def feed(self, cmd, msg):
-        check_time = 600
+        check_time = 10
 
         def check_feed():
             res = ''
@@ -197,7 +197,7 @@ class UserHandlerBot(Bot):
         except IndexError:
             self.send(msg.reply('未输入参数'))
         except ValueError:
-            self.send(msg.reply('没有这个值'))
+            self.send(msg.reply('值错误'))
 
 
 if __name__ == '__main__':
