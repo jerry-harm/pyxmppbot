@@ -168,7 +168,7 @@ class UserHandlerBot(Bot):
                           mtype='groupchat')
 
     def feed(self, cmd, msg):
-        check_time = 600
+        check_time = 10
 
         def check_feed():
             res = ''
