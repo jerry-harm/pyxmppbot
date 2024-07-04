@@ -25,7 +25,7 @@ class UserHandlerBot(Bot):
                             "输入：feed网址 或输入：查询 或输入：删除 feed网址 或输入：开 或输入:关 网址请带https前缀 或输入:last feed网址 条数（可选）"),
         }
         self.default_handler = Handler(self.default_handler, "默认回复功能")
-        self.feed_urls: typing.List[str] = ['https://hnrss.org/newest',
+        self.feed_urls: typing.List[str] = ['https://hnrss.org/newest?points=100',
                                             'https://blog.prosody.im/index.xml',
                                             'https://plink.anyfeeder.com/thepaper',
                                             'https://www.ruanyifeng.com/blog/atom.xml',
