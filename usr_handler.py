@@ -29,10 +29,10 @@ class UserHandlerBot(Bot):
                                             'https://blog.prosody.im/index.xml',
                                             'https://plink.anyfeeder.com/thepaper',
                                             'https://www.ruanyifeng.com/blog/atom.xml',
-                                            'https://www.geekpark.net/rss',
                                             'https://feeds.appinn.com/appinns/',
                                             'https://www.gcores.com/rss',
-                                            'https://plink.anyfeeder.com/people-daily']
+                                            'https://plink.anyfeeder.com/people-daily',
+                                            'https://linuplink.anyfeeder.com/weixin/cctvnewscenter']
         Bot.__init__(self, jid, password, room, self.handlers, self.default_handler, nick)
 
     def default_handler(self, cmd, msg: Message):
@@ -197,7 +197,7 @@ class UserHandlerBot(Bot):
         except IndexError:
             self.send(msg.reply('未输入参数'))
         except ValueError:
-            self.send(msg.reply('没有这个值'))
+            self.send(msg.reply('值错误'))
 
 
 if __name__ == '__main__':
