@@ -14,7 +14,7 @@ class UserHandlerBot(Bot):
             "色图": Handler(self.send_img_api, "随机动漫色图"),
             "写真": Handler(self.send_img_api, "随机写真"),
             "龙图": Handler(self.send_img_api, "随机龙图"),
-            "QQ": Handler(self.qq_information, "获取一个qq号的头像和邮箱"),
+            "QQ": Handler(self.qq_information, "获取一个qq号的头像"),
             "随机数": Handler(self.send_random, "获得输入两数间的随机数"),
             "统计": Handler(self.stats_mam, "获取n条内发言次数统计"),
             "加入": Handler(self.join_room, "加入指定jid的房间"),
@@ -22,7 +22,7 @@ class UserHandlerBot(Bot):
             "下线道别": Handler(self.goodbye, "开或关"),
             "定时消息": Handler(self.scheduled_msg, "开或关 计时分钟数（大于5分钟） 定时发送的内容"),
             "订阅": Handler(self.feed,
-                            "输入：feed网址 或输入：查询 或输入：删除 feed网址 或输入：开 或输入:关 网址请带https前缀 或输入:last feed网址"),
+                            "输入：feed网址 或输入：查询 或输入：删除 feed网址 或输入：开 或输入:关 网址请带https前缀 或输入:last feed网址 条数（可选）"),
         }
         self.default_handler = Handler(self.default_handler, "默认回复功能")
         self.feed_urls: typing.List[str] = ['https://hnrss.org/newest',
@@ -173,7 +173,7 @@ class UserHandlerBot(Bot):
         def check_feed():
             res = ''
             for i in self.feed_urls:
-                res += get_api.feed_to_string(i, check_time)
+                res += get_api.feed_time(i, check_time)
             self.send(msg.reply(res))
 
         try:
@@ -188,7 +188,10 @@ class UserHandlerBot(Bot):
                 self.feed_urls.remove(cmd[2])
             elif cmd[1] == "last":
                 if get_api.open_ssl(cmd[2]):
-                    self.send(msg.reply(get_api.feed_to_string(cmd[2], 0)))
+                    try:
+                        self.send(msg.reply(get_api.feed_num(cmd[2],int(cmd[3]))))
+                    except IndexError:
+                        self.send(msg.reply(get_api.feed_num(cmd[2], 1)))
                 else:
                     self.send(msg.reply('网址无法访问'))
             else:
