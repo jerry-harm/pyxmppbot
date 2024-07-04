@@ -174,7 +174,8 @@ class UserHandlerBot(Bot):
             res = ''
             for i in self.feed_urls:
                 res += get_api.feed_time(i, check_time)
-            self.send(msg.reply(res))
+            if res:
+                self.send(msg.reply(res))
 
         try:
             if cmd[1] == "查询":
@@ -189,9 +190,13 @@ class UserHandlerBot(Bot):
             elif cmd[1] == "last":
                 if get_api.open_ssl(cmd[2]):
                     try:
-                        self.send(msg.reply(get_api.feed_num(cmd[2],int(cmd[3]))))
+                        feed_string = get_api.feed_num(cmd[2], int(cmd[3]))
+                        if feed_string:
+                            self.send(msg.reply(feed_string))
                     except IndexError:
-                        self.send(msg.reply(get_api.feed_num(cmd[2], 1)))
+                        feed_string=get_api.feed_num(cmd[2], 1)
+                        if feed_string:
+                            self.send(msg.reply())
                 else:
                     self.send(msg.reply('网址无法访问'))
             else:
