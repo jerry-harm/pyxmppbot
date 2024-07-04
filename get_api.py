@@ -110,29 +110,27 @@ def api5():
 def feed_to_string(url, check_time):
     try:
         res = feedparser.parse(url)
+        msg=''
         # print(time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed))
         if check_time == 0:
-            msg = '''
+            msg += '''
             _{}_
-            {}
             {}
             {}
             {}\n
             '''.format(res.feed.title, res.entries[0].title,
                        res.entries[0].link,
-                       re.sub('<[^>]+>', ' ',res.entries[0].description),
                        res.entries[0].updated)
             return msg
-        if time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed) < check_time:
-            msg = '''
+        for feed in res.entries:
+            if time.mktime(time.localtime()) - time.mktime(feed.updated_parsed) < check_time:
+                msg += '''
             _{}_
-            {}
             {}
             {}
             {}\n
             '''.format(res.feed.title, res.entries[0].title,
                        res.entries[0].link,
-                       re.sub('<[^>]+>', ' ',res.entries[0].description),
                        res.entries[0].updated)
             return msg
         else:
