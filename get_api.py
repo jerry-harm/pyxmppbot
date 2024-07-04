@@ -110,7 +110,7 @@ def api5():
 def feed_to_string(url, check_time):
     try:
         res = feedparser.parse(url)
-        msg=''
+        msg = ''
 
         if check_time == 0:
             msg += '''
@@ -122,9 +122,10 @@ def feed_to_string(url, check_time):
                        res.entries[0].link,
                        res.entries[0].updated)
             return msg
+        print(url)
         for feed in res.entries:
-            # print(time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
-            if time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed) < check_time+30:
+            print(time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
+            if time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed) < check_time + 30:
                 msg += '''
             _{}_
             {}
@@ -133,9 +134,7 @@ def feed_to_string(url, check_time):
             '''.format(res.feed.title, res.entries[0].title,
                        res.entries[0].link,
                        res.entries[0].updated)
-            return msg
-        else:
-            return ''
+        return msg
     except Exception as e:
         print(url)
         print(e)

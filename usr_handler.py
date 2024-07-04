@@ -31,8 +31,7 @@ class UserHandlerBot(Bot):
                                             'https://www.ruanyifeng.com/blog/atom.xml',
                                             'https://feeds.appinn.com/appinns/',
                                             'https://www.gcores.com/rss',
-                                            'https://plink.anyfeeder.com/people-daily',
-                                            'https://linuplink.anyfeeder.com/weixin/cctvnewscenter']
+                                            'https://plink.anyfeeder.com/people-daily']
         Bot.__init__(self, jid, password, room, self.handlers, self.default_handler, nick)
 
     def default_handler(self, cmd, msg: Message):
