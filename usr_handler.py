@@ -168,7 +168,7 @@ class UserHandlerBot(Bot):
                           mtype='groupchat')
 
     def feed(self, cmd, msg):
-        check_time = 600
+        check_time = 600  # 10 分钟检查一次
 
         def check_feed():
             res = ''
@@ -187,7 +187,7 @@ class UserHandlerBot(Bot):
             elif cmd[1] == "删除":
                 self.feed_urls.remove(cmd[2])
             elif cmd[1] == "last":
-                if get_api.open_ssl(cmd[1]):
+                if get_api.open_ssl(cmd[2]):
                     self.send(msg.reply(get_api.feed_to_string(cmd[2], 0)))
                 else:
                     self.send(msg.reply('网址无法访问'))

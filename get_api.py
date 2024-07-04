@@ -114,24 +114,18 @@ def feed_to_string(url, check_time):
 
         if check_time == 0:
             msg += '''
-            _{}_
-            {}
-            {}
-            {}\n
-            '''.format(res.feed.title, res.entries[0].title,
+                _{}_\n{}\n{}\n{}\n
+                '''.format(res.feed.title, res.entries[0].title,
                        res.entries[0].link,
                        res.entries[0].updated)
             return msg
-        print(url)
+        # print(url)
         for feed in res.entries:
-            print(time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
-            if time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed) < check_time + 30:
+            # print(time.gmtime(),'-',feed.updated_parsed,'=',time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
+            if time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed) < check_time + 20:
                 msg += '''
-            _{}_
-            {}
-            {}
-            {}\n
-            '''.format(res.feed.title, res.entries[0].title,
+                    _{}_\n{}\n{}\n{}\n
+                    '''.format(res.feed.title, res.entries[0].title,
                        res.entries[0].link,
                        res.entries[0].updated)
         return msg
