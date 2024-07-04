@@ -1,3 +1,4 @@
+import re
 import time
 import urllib.error
 from typing import Any
@@ -106,24 +107,40 @@ def api5():
     return False
 
 
-def feed_to_string(url):
+def feed_to_string(url, check_time):
     try:
         res = feedparser.parse(url)
         # print(time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed))
-        if time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed) < 60:
+        if check_time == 0:
             msg = '''
             _{}_
             {}
             {}
             {}
             {}\n
-            '''.format(res.feed.title, res.entries[0].title, res.entries[0].link, res.entries[0].description, res.entries[0].updated)
+            '''.format(res.feed.title, res.entries[0].title,
+                       res.entries[0].link,
+                       re.sub('<[^>]+>', ' ',res.entries[0].description),
+                       res.entries[0].updated)
+            return msg
+        if time.mktime(time.localtime()) - time.mktime(res.entries[0].updated_parsed) < check_time:
+            msg = '''
+            _{}_
+            {}
+            {}
+            {}
+            {}\n
+            '''.format(res.feed.title, res.entries[0].title,
+                       res.entries[0].link,
+                       re.sub('<[^>]+>', ' ',res.entries[0].description),
+                       res.entries[0].updated)
             return msg
         else:
             return ''
     except Exception as e:
+        print(url)
         print(e)
-        return False
+        return ''
 
 
 apis = {
