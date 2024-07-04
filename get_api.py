@@ -123,7 +123,7 @@ def feed_to_string(url, check_time):
                        res.entries[0].updated)
             return msg
         for feed in res.entries:
-            print(time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
+            # print(time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
             if time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed) < check_time+30:
                 msg += '''
             _{}_
