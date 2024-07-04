@@ -112,25 +112,21 @@ def feed_time(url, check_time):
         res = feedparser.parse(url)
         msg = ''
 
-        if check_time == 0:
-            msg += '_{}_\n{}\n{}\n{}\n'.format(res.feed.title, res.entries[0].title,
-                       res.entries[0].link,
-                       res.entries[0].updated)
-            return msg
         # print(url)
         for feed in res.entries:
             # print(time.gmtime(),'-',feed.updated_parsed,'=',time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
             if time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed) < check_time + 20:
                 msg += '_{}_\n{}\n{}\n{}\n'.format(res.feed.title, feed.title,
-                       res.entries[0].link,
-                       res.entries[0].updated)
+                                                   feed.link,
+                                                   feed.updated)
         return msg
     except Exception as e:
         print(url)
         print(e)
         return ''
 
-def feed_num(url,num):
+
+def feed_num(url, num):
     try:
         res = feedparser.parse(url)
         msg = ''
@@ -140,13 +136,14 @@ def feed_num(url,num):
 
         for i in range(num):
             msg += '_{}_\n{}\n{}\n{}\n'.format(res.feed.title, res.entries[i].title,
-                       res.entries[i].link,
-                       res.entries[i].updated)
+                                               res.entries[i].link,
+                                               res.entries[i].updated)
         return msg
     except Exception as e:
         print(url)
         print(e)
         return ''
+
 
 apis = {
     "色图": [api2],
