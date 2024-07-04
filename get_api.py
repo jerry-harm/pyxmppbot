@@ -112,13 +112,19 @@ def feed_time(url, check_time):
         res = feedparser.parse(url)
         msg = ''
 
-        # print(url)
+        # 获取条目比较新的
         for feed in res.entries:
             # print(time.gmtime(),'-',feed.updated_parsed,'=',time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed))
             if time.mktime(time.gmtime()) - time.mktime(feed.updated_parsed) < check_time + 20:
                 msg += '_{}_\n{}\n{}\n{}\n'.format(res.feed.title, feed.title,
                                                    feed.link,
                                                    feed.updated)
+        # 如果是最近更新的但是条目比较老则选取第一个
+        if msg == '':
+            if time.mktime(time.gmtime()) - time.mktime(res.feed.updated_parsed) < check_time + 20:
+                msg += '_{}_\n{}\n{}\n{}\n'.format(res.feed.title, res.entries[0].title,
+                                                   res.entries[0].link,
+                                                   res.entries[0].updated)
         return msg
     except Exception as e:
         print(url)
