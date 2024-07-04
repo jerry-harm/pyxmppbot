@@ -31,7 +31,8 @@ class UserHandlerBot(Bot):
                                             'https://www.ruanyifeng.com/blog/atom.xml',
                                             'https://feeds.appinn.com/appinns/',
                                             'https://www.gcores.com/rss',
-                                            'https://plink.anyfeeder.com/people-daily']
+                                            'https://plink.anyfeeder.com/people-daily',
+                                            'https://jerrynya.fun/rss2.xml']
         Bot.__init__(self, jid, password, room, self.handlers, self.default_handler, nick)
 
     def default_handler(self, cmd, msg: Message):
@@ -186,7 +187,10 @@ class UserHandlerBot(Bot):
             elif cmd[1] == "删除":
                 self.feed_urls.remove(cmd[2])
             elif cmd[1] == "last":
-                self.send(msg.reply(get_api.feed_to_string(cmd[2], 0)))
+                if get_api.open_ssl(cmd[1]):
+                    self.send(msg.reply(get_api.feed_to_string(cmd[2], 0)))
+                else:
+                    self.send(msg.reply('网址无法访问'))
             else:
                 print(cmd[1])
                 if get_api.open_ssl(cmd[1]):
