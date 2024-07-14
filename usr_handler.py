@@ -32,7 +32,7 @@ class UserHandlerBot(Bot):
         self.default_handler = Handler(self.default_handler, "默认回复功能")
         self.feeds: typing.Dict[str, RSS] = {'hackernews': RSS('https://hnrss.org/newest?points=100'),
                                              'prosody': RSS('https://blog.prosody.im/index.xml'),
-                                             '澎湃新闻': RSS('https://plink.anyfeeder.com/thepaper'),
+                                             '奇客': RSS('https://www.solidot.org/index.rss'),
                                              '少数派': RSS('https://feeds.appinn.com/appinns/'),
                                              '机核': RSS('https://www.gcores.com/rss'),
                                              '人民日报': RSS('http://www.people.com.cn/rss/ywkx.xml'),
