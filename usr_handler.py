@@ -35,7 +35,7 @@ class UserHandlerBot(Bot):
                                              '奇客': RSS('https://www.solidot.org/index.rss'),
                                              '少数派': RSS('https://feeds.appinn.com/appinns/'),
                                              '机核': RSS('https://www.gcores.com/rss'),
-                                             '人民日报': RSS('http://www.people.com.cn/rss/ywkx.xml'),
+                                             '人民日报': RSS('https://feedx.run/rss/people.xml'),
                                              'Jerry的技术分享': RSS('https://jerrynya.fun/rss2.xml')}
         Bot.__init__(self, jid, password, room, self.handlers, self.default_handler, nick)
 
