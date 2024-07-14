@@ -1,18 +1,16 @@
-import get_api
 import feedparser
-import time
 
 
 class RSS:
     def __init__(self, url):
         self.url = url
         self.last_id: str = self.get_last_id()
-        print(self.last_id)
 
     def get_last_id(self):
         try:
             feeds = feedparser.parse(self.url)
-            return feeds.entries[0].id
+            print(feeds.entries[0].title)
+            return feeds.entries[0].title
         except IndexError:
             return ''
 
@@ -21,11 +19,11 @@ class RSS:
         try:
             feeds = feedparser.parse(self.url)
             for feed in feeds.entries:
-                if feed.id != self.last_id:
+                if feed.title != self.last_id:
                     msg += '*{}*\n{}\n{}\n{}\n'.format(feeds.feed.title, feed.title, feed.link, feed.updated)
                 else:
                     break
-            self.last_id = self.get_last_id()
+            self.last_id = feeds.entries[0].title
         finally:
             return msg
 

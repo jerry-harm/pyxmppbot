@@ -1,4 +1,5 @@
 import random
+import socket
 import typing
 
 from rss import RSS
@@ -170,16 +171,19 @@ class UserHandlerBot(Bot):
                           mbody='再见{}!'.format(msg['from'].resource),
                           mtype='groupchat')
 
-    def feed(self, cmd, msg):
-        check_time = 600  # 10 分钟检查一次
-
-        def check_feed():
-            for f in self.feeds.values():
-                r = f()
-                if r != '':
-                    self.send(msg.reply(r))
+    def check_feed(self,msg:Message):
+        print('called')
+        for f in self.feeds.values():
+            r = f()
+            if r != '':
+                if msg.get_type() == 'groupchat':
+                    self.send_message(mto=msg['from'].bare,mbody=r,mtype='groupchat')
                 else:
-                    pass
+                    self.send_message(mto=msg['from'].bare, mbody=r)
+            else:
+                pass
+
+    def feed(self, cmd, msg):
 
         try:
             if cmd[1] == "查询":
@@ -189,9 +193,10 @@ class UserHandlerBot(Bot):
                 self.send(msg.reply(res))
                 return True
             elif cmd[1] == "关":
-                self.cancel_schedule("feed::%s" % msg.get_from())
+                self.cancel_schedule("feed:%s" % msg.get_from())
             elif cmd[1] == "开":
-                self.schedule("feed::%s" % msg.get_from(), check_time, check_feed, repeat=True)
+                self.schedule("feed:%s" % msg.get_from(), 600, self.check_feed,args=tuple([msg]), repeat=True)
+                print('schedule')
             elif cmd[1] == "删除":
                 del self.feeds[cmd[2]]
             elif cmd[1] == "last":
@@ -216,10 +221,7 @@ class UserHandlerBot(Bot):
 
             elif cmd[1] == "添加":
                 print(cmd[2], cmd[3])
-                if get_api.open_ssl(cmd[3]):
-                    self.feeds[cmd[2]] = RSS(cmd[3])
-                else:
-                    self.send(msg.reply('网址无法访问'))
+                self.feeds[cmd[2]] = RSS(cmd[3])
         except IndexError:
             self.send(msg.reply('未输入参数'))
         except ValueError:
@@ -265,7 +267,7 @@ if __name__ == '__main__':
         args.password = getpass("Password: ")
     if args.nick is None:
         args.nick = getpass("nick: ")
-
+    socket.setdefaulttimeout(5)
     xmpp = UserHandlerBot(args.jid, args.password, args.room, args.nick)
     xmpp.connect()
     xmpp.init_plugins()
