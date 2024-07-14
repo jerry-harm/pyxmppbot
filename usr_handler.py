@@ -30,7 +30,7 @@ class UserHandlerBot(Bot):
                             "添加 名称 feed网址(网址请带https前缀);查询;删除 名称;开;关;last feed网址/名称 条数（可选）"),
         }
         self.default_handler = Handler(self.default_handler, "默认回复功能")
-        self.feeds: typing.Dict[str, RSS] = {'hackernews': RSS('https://hnrss.org/newest?points=100'),
+        self.feeds: typing.Dict[str, RSS] = {'hackernews': RSS('https://hnrss.org/show?points=100&comments=25'),
                                              'prosody': RSS('https://blog.prosody.im/index.xml'),
                                              '奇客': RSS('https://www.solidot.org/index.rss'),
                                              '少数派': RSS('https://feeds.appinn.com/appinns/'),
