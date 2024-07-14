@@ -1,5 +1,9 @@
 import random
+import typing
+
+from rss import RSS
 from collections import defaultdict
+import asyncio
 
 from slixmpp import Message, ClientXMPP, JID
 
@@ -22,17 +26,16 @@ class UserHandlerBot(Bot):
             "下线道别": Handler(self.goodbye, "开或关"),
             "定时消息": Handler(self.scheduled_msg, "开或关 计时分钟数（大于5分钟） 定时发送的内容"),
             "订阅": Handler(self.feed,
-                            "输入：feed网址 或输入：查询 或输入：删除 feed网址 或输入：开 或输入:关 网址请带https前缀 或输入:last feed网址 条数（可选）"),
+                            "添加 名称 feed网址(网址请带https前缀);查询;删除 名称;开;关;last feed网址/名称 条数（可选）"),
         }
         self.default_handler = Handler(self.default_handler, "默认回复功能")
-        self.feed_urls: typing.List[str] = ['https://hnrss.org/newest?points=100',
-                                            'https://blog.prosody.im/index.xml',
-                                            'https://plink.anyfeeder.com/thepaper',
-                                            'https://www.ruanyifeng.com/blog/atom.xml',
-                                            'https://feeds.appinn.com/appinns/',
-                                            'https://www.gcores.com/rss',
-                                            'https://plink.anyfeeder.com/people-daily',
-                                            'https://jerrynya.fun/rss2.xml']
+        self.feeds: typing.Dict[str, RSS] = {'hackernews': RSS('https://hnrss.org/newest?points=100'),
+                                             'prosody': RSS('https://blog.prosody.im/index.xml'),
+                                             '澎湃新闻': RSS('https://plink.anyfeeder.com/thepaper'),
+                                             '少数派': RSS('https://feeds.appinn.com/appinns/'),
+                                             '机核': RSS('https://www.gcores.com/rss'),
+                                             '人民日报': RSS('http://www.people.com.cn/rss/ywkx.xml'),
+                                             'Jerry的技术分享': RSS('https://jerrynya.fun/rss2.xml')}
         Bot.__init__(self, jid, password, room, self.handlers, self.default_handler, nick)
 
     def default_handler(self, cmd, msg: Message):
@@ -171,38 +174,50 @@ class UserHandlerBot(Bot):
         check_time = 600  # 10 分钟检查一次
 
         def check_feed():
-            res = ''
-            for i in self.feed_urls:
-                res += get_api.feed_time(i, check_time)
-            if res:
-                self.send(msg.reply(res))
+            for f in self.feeds.values():
+                r = f()
+                if r != '':
+                    self.send(msg.reply(r))
+                else:
+                    pass
 
         try:
             if cmd[1] == "查询":
-                self.send(msg.reply('\n'.join(self.feed_urls)))
+                res = ''
+                for k, v in self.feeds.items():
+                    res += k + ' ' + v.url + '\n'
+                self.send(msg.reply(res))
                 return True
             elif cmd[1] == "关":
                 self.cancel_schedule("feed::%s" % msg.get_from())
             elif cmd[1] == "开":
                 self.schedule("feed::%s" % msg.get_from(), check_time, check_feed, repeat=True)
             elif cmd[1] == "删除":
-                self.feed_urls.remove(cmd[2])
+                del self.feeds[cmd[2]]
             elif cmd[1] == "last":
-                if get_api.open_ssl(cmd[2]):
+                if cmd[2] in self.feeds:
+                    num: int = 1
                     try:
-                        feed_string = get_api.feed_num(cmd[2], int(cmd[3]))
-                        if feed_string:
-                            self.send(msg.reply(feed_string))
+                        num = int(cmd[3])
                     except IndexError:
-                        feed_string=get_api.feed_num(cmd[2], 1)
-                        if feed_string:
-                            self.send(msg.reply())
+                        num = 1
+                    finally:
+                        res = self.feeds[cmd[2]].get_by_num(num)
+                        self.send(msg.reply(res))
                 else:
-                    self.send(msg.reply('网址无法访问'))
-            else:
-                print(cmd[1])
-                if get_api.open_ssl(cmd[1]):
-                    self.feed_urls.append(cmd[1])
+                    num: int = 1
+                    try:
+                        num = int(cmd[3])
+                    except IndexError:
+                        num = 1
+                    finally:
+                        res = RSS(cmd[2]).get_by_num(num)
+                        self.send(msg.reply(res))
+
+            elif cmd[1] == "添加":
+                print(cmd[2], cmd[3])
+                if get_api.open_ssl(cmd[3]):
+                    self.feeds[cmd[2]] = RSS(cmd[3])
                 else:
                     self.send(msg.reply('网址无法访问'))
         except IndexError:
@@ -213,8 +228,6 @@ class UserHandlerBot(Bot):
 
 if __name__ == '__main__':
     if sys.platform == 'win32':
-        import asyncio
-
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     # Set up the command line arguments.
@@ -255,4 +268,5 @@ if __name__ == '__main__':
 
     xmpp = UserHandlerBot(args.jid, args.password, args.room, args.nick)
     xmpp.connect()
-    xmpp.process()
+    xmpp.init_plugins()
+    xmpp.loop.run_forever()
