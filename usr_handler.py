@@ -198,7 +198,10 @@ class UserHandlerBot(Bot):
                 self.schedule("feed:%s" % msg.get_from(), 600, self.check_feed,args=tuple([msg]), repeat=True)
                 print('schedule')
             elif cmd[1] == "删除":
-                del self.feeds[cmd[2]]
+                try:
+                    del self.feeds[cmd[2]]
+                except KeyError:
+                    self.send(msg.reply('没有这个键'))
             elif cmd[1] == "last":
                 if cmd[2] in self.feeds:
                     num: int = 1
