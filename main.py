@@ -21,10 +21,13 @@ class Handler:
         self.self_admin = self_admin
 
     async def __call__(self, cmd, msg: Message):
-        if inspect.iscoroutinefunction(self.method):
-            await self.method(cmd, msg)
-        else:
-            self.method(cmd, msg)
+        try:
+            if inspect.iscoroutinefunction(self.method):
+                await self.method(cmd, msg)
+            else:
+                self.method(cmd, msg)
+        except Exception:
+            print('unknown error')
 
     def __str__(self):
         return self.description
