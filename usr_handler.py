@@ -195,7 +195,7 @@ class UserHandlerBot(Bot):
             elif cmd[1] == "关":
                 self.cancel_schedule("feed:%s" % msg.get_from())
             elif cmd[1] == "开":
-                self.schedule("feed:%s" % msg.get_from(), 600, self.check_feed,args=tuple([msg]), repeat=True)
+                self.schedule("feed:%s" % msg.get_from(), 1800, self.check_feed,args=tuple([msg]), repeat=True)
                 print('schedule')
             elif cmd[1] == "删除":
                 try:
