@@ -35,7 +35,7 @@ class Handler:
 
 class Bot(ClientXMPP):
 
-    def __init__(self, jid:str, password:str, room:str, handlers: typing.Dict[str:Handler], default_handler: Handler, nick: str):
+    def __init__(self, jid:str, password:str, room:str, handlers, default_handler: Handler, nick: str):
         ClientXMPP.__init__(self, jid, password)
 
         self.room = JID(room)
