@@ -35,7 +35,7 @@ class Handler:
 
 class Bot(ClientXMPP):
 
-    def __init__(self, jid, password, room, handlers, default_handler, nick="AFM"):
+    def __init__(self, jid:str, password:str, room:str, handlers: typing.Dict[str:Handler], default_handler: Handler, nick: str):
         ClientXMPP.__init__(self, jid, password)
 
         self.room = JID(room)
@@ -49,7 +49,7 @@ class Bot(ClientXMPP):
         # If you wanted more functionality, here's how to register plugins:
         self.register_plugin('xep_0030')  # Service Discovery
         self.register_plugin('xep_0313')  # mam
-        # self.register_plugin('xep_0199') # XMPP Ping
+        self.register_plugin('xep_0199')  # XMPP Ping
 
         self.register_plugin('xep_0045')  # muc plugin
         self.register_plugin('xep_0249')  # muc invite
